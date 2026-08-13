@@ -1,0 +1,81 @@
+name: SpeedyFan
+options:
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+targets:
+  SMCCore:
+    type: library.static
+    platform: macOS
+    sources:
+      - Sources/SMCCore
+  fanctl:
+    type: tool
+    platform: macOS
+    sources:
+      - Sources/fanctl
+    dependencies:
+      - target: SMCCore
+  SpeedyFan:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/SpeedyFan
+      - path: AppIcon.icns
+        buildPhase: resources
+    settings:
+      base:
+        INFOPLIST_FILE: Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        PRODUCT_BUNDLE_IDENTIFIER: com.speedyfan.app
+    dependencies:
+      - target: SMCCore
+      - target: fanctl
+        link: false
+        embed: true
+        copy:
+          destination: resources
+    scheme:
+      testTargets:
+        - SMCCoreTests
+        - SpeedyFanTests
+        - FanctlTests
+  SMCCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - Tests/SMCCoreTests
+    dependencies:
+      - target: SMCCore
+  SpeedyFanTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/SpeedyFanTests
+    dependencies:
+      - target: SpeedyFan
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/SpeedyFan.app/Contents/MacOS/SpeedyFan
+        BUNDLE_LOADER: $(TEST_HOST)
+  FanctlTests:
+    type: bundle.unit-test
+    platform: macOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - Tests/FanctlTests
+    dependencies:
+      - target: SMCCore
+      - target: fanctl
+        link: false

@@ -1,0 +1,14 @@
+# Build products — all regenerable.
+.build/
+*.app/
+# Icon intermediate; build.sh regenerates it from tools/make-icon.swift
+# whenever AppIcon.icns is missing.
+AppIcon.iconset/
+
+# Per-user Xcode state (appears inside the .xcodeproj and its workspace the
+# first time the project is opened; xcshareddata stays tracked).
+xcuserdata/
+.swiftpm/
+*.xcresult
+
+.DS_Store

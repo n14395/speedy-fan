@@ -1,0 +1,983 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		07696389D3FC6F499FE429D9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F449B04841F61BDCA700CC3 /* SettingsView.swift */; };
+		07E4154A52869B3445DE5814 /* Helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B024D855B1F64B673FE29D /* Helper.swift */; };
+		0994BBAD6D05CB4E1862FEED /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED79F3157C4B2FA459619E66 /* SMC.swift */; };
+		141C519031E82C7AB3F94A72 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6ED12AAF37557414B278A6B /* AppSettingsTests.swift */; };
+		1ED18FF1774D809606F68B19 /* libSMCCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */; };
+		274A3DE0F672234815722236 /* SMCCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96884303CD7E522D492AED00 /* SMCCodingTests.swift */; };
+		3828444E9B00F198FDF475C0 /* SensorsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F5797F14F7FB554F90983D /* SensorsTests.swift */; };
+		417D1AED4CAD39BD0481D161 /* MockSMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3EC5CE5905FEEAE0ACB4F95 /* MockSMC.swift */; };
+		4ED3E0BAE141D9F8D6B10852 /* TemperatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E793F72C655F3FFB047C4972 /* TemperatureTests.swift */; };
+		5EE9DABA2C3122D91C1CC524 /* FansTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E88A4A53DB647CE7A175B6 /* FansTests.swift */; };
+		6274D86AACBBEA2CED2ED67C /* FanController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC01E23A3E278E3898B72FBF /* FanController.swift */; };
+		6475898C8FCB252A06030DFD /* fanctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 45E063BE69CA81D4B7E783B4 /* fanctl */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		64AA00FF49B4363EAF79A99A /* FanControllerMathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E464545018C759C5422640B /* FanControllerMathTests.swift */; };
+		67AD20A22E0076B2267C43C8 /* HelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECA791684DA8FED29F6D0922 /* HelperTests.swift */; };
+		6CDC449CEB9499CAEE5BD3AE /* MenuBarLabelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66F505DE173725B15E4960CB /* MenuBarLabelTests.swift */; };
+		7ADF5ADBD53CE08BCC0058DB /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B38920955141F81FC93115 /* MenuView.swift */; };
+		7CBF77200A9AF7087B2AAEE8 /* FanctlCLITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32B604587AAA79EC91B08760 /* FanctlCLITests.swift */; };
+		81B936C5AE418B7AF5A6DBA9 /* libSMCCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */; };
+		88875183DF7748AA5C187006 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6359D21046548DE1F2416808 /* AppSettings.swift */; };
+		902DC286B51A424E95105A90 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A6226F3716AD5392068EF0 /* main.swift */; };
+		96C734A3163C47303D54BA4E /* libSMCCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */; };
+		9A0E3EC672904AB83ED2ADBC /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = CB65F4E3B84E5D8264CE6AA9 /* AppIcon.icns */; };
+		9AD90E6554A6E7955D7D57BD /* Fans.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68ADD0A03862581EE0DE7E41 /* Fans.swift */; };
+		A39DE802E4BFB587F750673E /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2ADEF88932BD241171CA38C /* Notifier.swift */; };
+		D36124907FA7F7D23499E63A /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B6C314E46FBEF93A6A344A /* Temperature.swift */; };
+		D415B1F8C99BDEAC96424F99 /* libSMCCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */; };
+		D98CB744FCEBFCB52D9A4911 /* SpeedyFanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29692B44B279039067AF1F8 /* SpeedyFanApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2972D72FE5CA3C5B5828DBF7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E456E8CA0CFD58719FFB1F9C;
+			remoteInfo = fanctl;
+		};
+		2E191341FFC28F168A9B86BE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9618A73B775F5E274CD93579;
+			remoteInfo = SMCCore;
+		};
+		2FCE2688B749EB06B420F793 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 853DBA3280F7FA4FC9250668;
+			remoteInfo = SpeedyFan;
+		};
+		5FED1CC351269794456FCFEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9618A73B775F5E274CD93579;
+			remoteInfo = SMCCore;
+		};
+		69A2904E3C2BE8A6FACA5B2C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9618A73B775F5E274CD93579;
+			remoteInfo = SMCCore;
+		};
+		A2B2B24BAD1B0ECBD701EB03 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E456E8CA0CFD58719FFB1F9C;
+			remoteInfo = fanctl;
+		};
+		BEDEBA579841806ED1A9D558 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9618A73B775F5E274CD93579;
+			remoteInfo = SMCCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1B495D0A434E23C0B8EB16CA /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				6475898C8FCB252A06030DFD /* fanctl in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		03B024D855B1F64B673FE29D /* Helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helper.swift; sourceTree = "<group>"; };
+		32B604587AAA79EC91B08760 /* FanctlCLITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanctlCLITests.swift; sourceTree = "<group>"; };
+		37E88A4A53DB647CE7A175B6 /* FansTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FansTests.swift; sourceTree = "<group>"; };
+		45E063BE69CA81D4B7E783B4 /* fanctl */ = {isa = PBXFileReference; includeInIndex = 0; path = fanctl; sourceTree = BUILT_PRODUCTS_DIR; };
+		54BE1F5B26B83A5D03861891 /* FanctlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FanctlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6359D21046548DE1F2416808 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		66F505DE173725B15E4960CB /* MenuBarLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelTests.swift; sourceTree = "<group>"; };
+		67B38920955141F81FC93115 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		68ADD0A03862581EE0DE7E41 /* Fans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fans.swift; sourceTree = "<group>"; };
+		6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libSMCCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		772BE4F12BAFE90DEF19D443 /* SMCCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SMCCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7E464545018C759C5422640B /* FanControllerMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControllerMathTests.swift; sourceTree = "<group>"; };
+		7EC32112484D7C2F5B5A389A /* SpeedyFan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpeedyFan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F449B04841F61BDCA700CC3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		96884303CD7E522D492AED00 /* SMCCodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCCodingTests.swift; sourceTree = "<group>"; };
+		A2ADEF88932BD241171CA38C /* Notifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifier.swift; sourceTree = "<group>"; };
+		A6ED12AAF37557414B278A6B /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		B29692B44B279039067AF1F8 /* SpeedyFanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedyFanApp.swift; sourceTree = "<group>"; };
+		BC01E23A3E278E3898B72FBF /* FanController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanController.swift; sourceTree = "<group>"; };
+		C1A6226F3716AD5392068EF0 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CB65F4E3B84E5D8264CE6AA9 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		CBEAA46C6758966099CA01A5 /* SpeedyFanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpeedyFanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E793F72C655F3FFB047C4972 /* TemperatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureTests.swift; sourceTree = "<group>"; };
+		E8F5797F14F7FB554F90983D /* SensorsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorsTests.swift; sourceTree = "<group>"; };
+		ECA791684DA8FED29F6D0922 /* HelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperTests.swift; sourceTree = "<group>"; };
+		ED79F3157C4B2FA459619E66 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
+		F3EC5CE5905FEEAE0ACB4F95 /* MockSMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSMC.swift; sourceTree = "<group>"; };
+		F8B6C314E46FBEF93A6A344A /* Temperature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Temperature.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1F59A33C7BFBE8B06D3C2063 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				81B936C5AE418B7AF5A6DBA9 /* libSMCCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		71E105DBB56A50A7C77E256A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D415B1F8C99BDEAC96424F99 /* libSMCCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		86F08ED102C48DB8F134D157 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1ED18FF1774D809606F68B19 /* libSMCCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		87270C53AD6C788F947D82D6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				96C734A3163C47303D54BA4E /* libSMCCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2E99EDD0FDAF98E155C12D58 /* SpeedyFan */ = {
+			isa = PBXGroup;
+			children = (
+				6359D21046548DE1F2416808 /* AppSettings.swift */,
+				BC01E23A3E278E3898B72FBF /* FanController.swift */,
+				03B024D855B1F64B673FE29D /* Helper.swift */,
+				67B38920955141F81FC93115 /* MenuView.swift */,
+				A2ADEF88932BD241171CA38C /* Notifier.swift */,
+				8F449B04841F61BDCA700CC3 /* SettingsView.swift */,
+				B29692B44B279039067AF1F8 /* SpeedyFanApp.swift */,
+				F8B6C314E46FBEF93A6A344A /* Temperature.swift */,
+			);
+			path = SpeedyFan;
+			sourceTree = "<group>";
+		};
+		354546EF4431795DDB8EDA5D /* SMCCore */ = {
+			isa = PBXGroup;
+			children = (
+				68ADD0A03862581EE0DE7E41 /* Fans.swift */,
+				ED79F3157C4B2FA459619E66 /* SMC.swift */,
+			);
+			path = SMCCore;
+			sourceTree = "<group>";
+		};
+		5942F2465D08C7841492702C /* fanctl */ = {
+			isa = PBXGroup;
+			children = (
+				C1A6226F3716AD5392068EF0 /* main.swift */,
+			);
+			path = fanctl;
+			sourceTree = "<group>";
+		};
+		8CD39321F55E32A8DAD2EDA0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				45E063BE69CA81D4B7E783B4 /* fanctl */,
+				54BE1F5B26B83A5D03861891 /* FanctlTests.xctest */,
+				6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */,
+				772BE4F12BAFE90DEF19D443 /* SMCCoreTests.xctest */,
+				7EC32112484D7C2F5B5A389A /* SpeedyFan.app */,
+				CBEAA46C6758966099CA01A5 /* SpeedyFanTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8DFE2C671334CCB3C98862B8 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				5942F2465D08C7841492702C /* fanctl */,
+				354546EF4431795DDB8EDA5D /* SMCCore */,
+				2E99EDD0FDAF98E155C12D58 /* SpeedyFan */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		9D3FF977FBF2A01EF6E6FD5D /* SpeedyFanTests */ = {
+			isa = PBXGroup;
+			children = (
+				A6ED12AAF37557414B278A6B /* AppSettingsTests.swift */,
+				7E464545018C759C5422640B /* FanControllerMathTests.swift */,
+				ECA791684DA8FED29F6D0922 /* HelperTests.swift */,
+				66F505DE173725B15E4960CB /* MenuBarLabelTests.swift */,
+				E793F72C655F3FFB047C4972 /* TemperatureTests.swift */,
+			);
+			path = SpeedyFanTests;
+			sourceTree = "<group>";
+		};
+		AA9E04EBDB15F0AB1B6C13AC /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				FEAC23E11160FECB14BF5AD0 /* FanctlTests */,
+				D113D6E5FD3D96270D3B88FD /* SMCCoreTests */,
+				9D3FF977FBF2A01EF6E6FD5D /* SpeedyFanTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		D113D6E5FD3D96270D3B88FD /* SMCCoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				37E88A4A53DB647CE7A175B6 /* FansTests.swift */,
+				F3EC5CE5905FEEAE0ACB4F95 /* MockSMC.swift */,
+				E8F5797F14F7FB554F90983D /* SensorsTests.swift */,
+				96884303CD7E522D492AED00 /* SMCCodingTests.swift */,
+			);
+			path = SMCCoreTests;
+			sourceTree = "<group>";
+		};
+		FEAC23E11160FECB14BF5AD0 /* FanctlTests */ = {
+			isa = PBXGroup;
+			children = (
+				32B604587AAA79EC91B08760 /* FanctlCLITests.swift */,
+			);
+			path = FanctlTests;
+			sourceTree = "<group>";
+		};
+		FFC6EAC1B1C525B804808BF3 = {
+			isa = PBXGroup;
+			children = (
+				CB65F4E3B84E5D8264CE6AA9 /* AppIcon.icns */,
+				8DFE2C671334CCB3C98862B8 /* Sources */,
+				AA9E04EBDB15F0AB1B6C13AC /* Tests */,
+				8CD39321F55E32A8DAD2EDA0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		351D448939C704D641310B9F /* SMCCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE4C4A2ED63D94F899BD2284 /* Build configuration list for PBXNativeTarget "SMCCoreTests" */;
+			buildPhases = (
+				C078D53928AFABF2A9387D78 /* Sources */,
+				87270C53AD6C788F947D82D6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A5AD393C248C16378B414B24 /* PBXTargetDependency */,
+			);
+			name = SMCCoreTests;
+			packageProductDependencies = (
+			);
+			productName = SMCCoreTests;
+			productReference = 772BE4F12BAFE90DEF19D443 /* SMCCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		530BB3D9223E5699A186E39C /* FanctlTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 13753629EBD15E420C693645 /* Build configuration list for PBXNativeTarget "FanctlTests" */;
+			buildPhases = (
+				A6E1DA9D864D8B63AE775E1B /* Sources */,
+				1F59A33C7BFBE8B06D3C2063 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E11E6178A0816818B4BEFC42 /* PBXTargetDependency */,
+				864E7D4E667FC6FA2F6065F0 /* PBXTargetDependency */,
+			);
+			name = FanctlTests;
+			packageProductDependencies = (
+			);
+			productName = FanctlTests;
+			productReference = 54BE1F5B26B83A5D03861891 /* FanctlTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5DC69C5432BE7F97334D7BF2 /* SpeedyFanTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1CCF120FEDF8B053B9B2B5FC /* Build configuration list for PBXNativeTarget "SpeedyFanTests" */;
+			buildPhases = (
+				F7DC05427A6851628A22B87C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F9DC8CEB14ADBA03796A84B6 /* PBXTargetDependency */,
+			);
+			name = SpeedyFanTests;
+			packageProductDependencies = (
+			);
+			productName = SpeedyFanTests;
+			productReference = CBEAA46C6758966099CA01A5 /* SpeedyFanTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		853DBA3280F7FA4FC9250668 /* SpeedyFan */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA0BD6F612ECA0F7D33E5D2F /* Build configuration list for PBXNativeTarget "SpeedyFan" */;
+			buildPhases = (
+				0E07C24C22B51E8E6BE7EEBB /* Sources */,
+				474118EAFAAA93BCB909B31D /* Resources */,
+				86F08ED102C48DB8F134D157 /* Frameworks */,
+				1B495D0A434E23C0B8EB16CA /* Embed Dependencies */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1F37C92312F81AEC6432F27 /* PBXTargetDependency */,
+				582828612822D5EEC51108B6 /* PBXTargetDependency */,
+			);
+			name = SpeedyFan;
+			packageProductDependencies = (
+			);
+			productName = SpeedyFan;
+			productReference = 7EC32112484D7C2F5B5A389A /* SpeedyFan.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9618A73B775F5E274CD93579 /* SMCCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2070EB9114ED4C348A753855 /* Build configuration list for PBXNativeTarget "SMCCore" */;
+			buildPhases = (
+				788A611B8368ABCD756DF166 /* Sources */,
+				02D5527EC22A820DE8C149DE /* Copy Swift Objective-C Interface Header */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SMCCore;
+			packageProductDependencies = (
+			);
+			productName = SMCCore;
+			productReference = 6F0AE75FEFC7D93DE7F7B0D8 /* libSMCCore.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		E456E8CA0CFD58719FFB1F9C /* fanctl */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D8A3108698FB4B7425DE6CB9 /* Build configuration list for PBXNativeTarget "fanctl" */;
+			buildPhases = (
+				9F9504658E9BFA1CF0D9455E /* Sources */,
+				71E105DBB56A50A7C77E256A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEFD530872DC275F657255C1 /* PBXTargetDependency */,
+			);
+			name = fanctl;
+			packageProductDependencies = (
+			);
+			productName = fanctl;
+			productReference = 45E063BE69CA81D4B7E783B4 /* fanctl */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F3AD815FF926B3CC8BEFCEB0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					351D448939C704D641310B9F = {
+						ProvisioningStyle = Automatic;
+					};
+					530BB3D9223E5699A186E39C = {
+						ProvisioningStyle = Automatic;
+					};
+					5DC69C5432BE7F97334D7BF2 = {
+						ProvisioningStyle = Automatic;
+					};
+					853DBA3280F7FA4FC9250668 = {
+						ProvisioningStyle = Automatic;
+					};
+					9618A73B775F5E274CD93579 = {
+						ProvisioningStyle = Automatic;
+					};
+					E456E8CA0CFD58719FFB1F9C = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 9B154FD9EC16579CA1B5FA25 /* Build configuration list for PBXProject "SpeedyFan" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FFC6EAC1B1C525B804808BF3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8CD39321F55E32A8DAD2EDA0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9618A73B775F5E274CD93579 /* SMCCore */,
+				E456E8CA0CFD58719FFB1F9C /* fanctl */,
+				853DBA3280F7FA4FC9250668 /* SpeedyFan */,
+				351D448939C704D641310B9F /* SMCCoreTests */,
+				5DC69C5432BE7F97334D7BF2 /* SpeedyFanTests */,
+				530BB3D9223E5699A186E39C /* FanctlTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		474118EAFAAA93BCB909B31D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9A0E3EC672904AB83ED2ADBC /* AppIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		02D5527EC22A820DE8C149DE /* Copy Swift Objective-C Interface Header */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(DERIVED_SOURCES_DIR)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			name = "Copy Swift Objective-C Interface Header";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/include/$(PRODUCT_MODULE_NAME)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ditto \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0E07C24C22B51E8E6BE7EEBB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				88875183DF7748AA5C187006 /* AppSettings.swift in Sources */,
+				6274D86AACBBEA2CED2ED67C /* FanController.swift in Sources */,
+				07E4154A52869B3445DE5814 /* Helper.swift in Sources */,
+				7ADF5ADBD53CE08BCC0058DB /* MenuView.swift in Sources */,
+				A39DE802E4BFB587F750673E /* Notifier.swift in Sources */,
+				07696389D3FC6F499FE429D9 /* SettingsView.swift in Sources */,
+				D98CB744FCEBFCB52D9A4911 /* SpeedyFanApp.swift in Sources */,
+				D36124907FA7F7D23499E63A /* Temperature.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		788A611B8368ABCD756DF166 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9AD90E6554A6E7955D7D57BD /* Fans.swift in Sources */,
+				0994BBAD6D05CB4E1862FEED /* SMC.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F9504658E9BFA1CF0D9455E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				902DC286B51A424E95105A90 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6E1DA9D864D8B63AE775E1B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7CBF77200A9AF7087B2AAEE8 /* FanctlCLITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C078D53928AFABF2A9387D78 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5EE9DABA2C3122D91C1CC524 /* FansTests.swift in Sources */,
+				417D1AED4CAD39BD0481D161 /* MockSMC.swift in Sources */,
+				274A3DE0F672234815722236 /* SMCCodingTests.swift in Sources */,
+				3828444E9B00F198FDF475C0 /* SensorsTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F7DC05427A6851628A22B87C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				141C519031E82C7AB3F94A72 /* AppSettingsTests.swift in Sources */,
+				64AA00FF49B4363EAF79A99A /* FanControllerMathTests.swift in Sources */,
+				67AD20A22E0076B2267C43C8 /* HelperTests.swift in Sources */,
+				6CDC449CEB9499CAEE5BD3AE /* MenuBarLabelTests.swift in Sources */,
+				4ED3E0BAE141D9F8D6B10852 /* TemperatureTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		582828612822D5EEC51108B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E456E8CA0CFD58719FFB1F9C /* fanctl */;
+			targetProxy = A2B2B24BAD1B0ECBD701EB03 /* PBXContainerItemProxy */;
+		};
+		864E7D4E667FC6FA2F6065F0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E456E8CA0CFD58719FFB1F9C /* fanctl */;
+			targetProxy = 2972D72FE5CA3C5B5828DBF7 /* PBXContainerItemProxy */;
+		};
+		A1F37C92312F81AEC6432F27 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9618A73B775F5E274CD93579 /* SMCCore */;
+			targetProxy = BEDEBA579841806ED1A9D558 /* PBXContainerItemProxy */;
+		};
+		A5AD393C248C16378B414B24 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9618A73B775F5E274CD93579 /* SMCCore */;
+			targetProxy = 2E191341FFC28F168A9B86BE /* PBXContainerItemProxy */;
+		};
+		DEFD530872DC275F657255C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9618A73B775F5E274CD93579 /* SMCCore */;
+			targetProxy = 69A2904E3C2BE8A6FACA5B2C /* PBXContainerItemProxy */;
+		};
+		E11E6178A0816818B4BEFC42 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9618A73B775F5E274CD93579 /* SMCCore */;
+			targetProxy = 5FED1CC351269794456FCFEA /* PBXContainerItemProxy */;
+		};
+		F9DC8CEB14ADBA03796A84B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 853DBA3280F7FA4FC9250668 /* SpeedyFan */;
+			targetProxy = 2FCE2688B749EB06B420F793 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1FFF310E97F9206F40AD8B57 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		25D7681DABFE6E0697B64CF3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.speedyfan.app;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		2810F16EAF280B363FF9D50C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		65D2163B299BF258BE2A4260 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.speedyfan.app;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		802085192ECF675A99A518A2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		86E88C18B276058BFF9E2C4C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SpeedyFan.app/Contents/MacOS/SpeedyFan";
+			};
+			name = Debug;
+		};
+		88F468E6BB260E8DC70FB093 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		AA57332A12D84946273F0366 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		B8C0507F3A16EA18158996E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C610116ED93E8AEB9802F6D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		D2116ACC22D19F3026232DEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SpeedyFan.app/Contents/MacOS/SpeedyFan";
+			};
+			name = Release;
+		};
+		D62337424E12FEAFFCF2139A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		E133687AFEB42002C608026F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F1F84C7F1D164CB4CDBF5DC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		13753629EBD15E420C693645 /* Build configuration list for PBXNativeTarget "FanctlTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B8C0507F3A16EA18158996E3 /* Debug */,
+				C610116ED93E8AEB9802F6D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1CCF120FEDF8B053B9B2B5FC /* Build configuration list for PBXNativeTarget "SpeedyFanTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86E88C18B276058BFF9E2C4C /* Debug */,
+				D2116ACC22D19F3026232DEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2070EB9114ED4C348A753855 /* Build configuration list for PBXNativeTarget "SMCCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D62337424E12FEAFFCF2139A /* Debug */,
+				F1F84C7F1D164CB4CDBF5DC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9B154FD9EC16579CA1B5FA25 /* Build configuration list for PBXProject "SpeedyFan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				802085192ECF675A99A518A2 /* Debug */,
+				AA57332A12D84946273F0366 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D8A3108698FB4B7425DE6CB9 /* Build configuration list for PBXNativeTarget "fanctl" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E133687AFEB42002C608026F /* Debug */,
+				88F468E6BB260E8DC70FB093 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DE4C4A2ED63D94F899BD2284 /* Build configuration list for PBXNativeTarget "SMCCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1FFF310E97F9206F40AD8B57 /* Debug */,
+				2810F16EAF280B363FF9D50C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FA0BD6F612ECA0F7D33E5D2F /* Build configuration list for PBXNativeTarget "SpeedyFan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65D2163B299BF258BE2A4260 /* Debug */,
+				25D7681DABFE6E0697B64CF3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F3AD815FF926B3CC8BEFCEB0 /* Project object */;
+}
