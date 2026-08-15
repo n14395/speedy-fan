@@ -70,6 +70,10 @@ struct MenuView: View {
 
     @ViewBuilder
     private var captions: some View {
+        if !controller.stuckFans.isEmpty {
+            Caption(stuckFanWarning, systemImage: "exclamationmark.triangle.fill",
+                    tint: .red)
+        }
         if controller.boostPinned {
             Caption("Maximum fans — full speed until below \(Temperature.format(Double(maxFansAtTemp - FanController.boostReleaseMargin), fahrenheit: useF))",
                     systemImage: "flame")
@@ -82,6 +86,17 @@ struct MenuView: View {
                         systemImage: "clock")
             }
         }
+        Caption("Thermal pressure: \(ThermalPressure.label(controller.thermalState))",
+                systemImage: "gauge.medium",
+                tint: ThermalPressure.tint(controller.thermalState))
+    }
+
+    private var stuckFanWarning: String {
+        let names = controller.fans
+            .filter { controller.stuckFans.contains($0.id) }
+            .map(\.name)
+            .joined(separator: ", ")
+        return "\(names) not spinning despite a commanded speed — the fan may be stuck"
     }
 
     /// Ten minutes of the hottest sensor, drawn from whatever polling
@@ -223,10 +238,12 @@ struct MenuView: View {
 private struct Caption: View {
     let text: String
     let systemImage: String
+    let tint: Color?
 
-    init(_ text: String, systemImage: String) {
+    init(_ text: String, systemImage: String, tint: Color? = nil) {
         self.text = text
         self.systemImage = systemImage
+        self.tint = tint
     }
 
     var body: some View {
@@ -240,7 +257,7 @@ private struct Caption: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(.caption)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(tint ?? Color.secondary)
     }
 }
 
@@ -296,22 +313,29 @@ private struct TempSparkline: View {
     }
 }
 
-// Best-effort names for well-known SMC sensor keys. Apple Silicon key names
-// are undocumented, so unknown keys show as their raw four-char code — honest
-// and still useful for spotting the hot one.
-enum SensorName {
-    private static let exact: [String: String] = [
-        "TA0P": "Ambient", "TB0T": "Battery", "TC0P": "CPU Proximity",
-        "TG0P": "GPU Proximity", "TH0P": "Drive Bay", "TN0P": "Northbridge",
-        "TW0P": "AirPort", "Th0H": "Heatpipe 1", "Th1H": "Heatpipe 2",
-        "Ts0P": "Palm Rest",
-    ]
+// Display mapping for the OS's own heat verdict (ProcessInfo.thermalState):
+// unlike a raw sensor reading, this is macOS's judgment of whether the
+// machine is comfortable, with Apple's per-model knowledge baked in.
+enum ThermalPressure {
+    nonisolated static func label(_ state: ProcessInfo.ThermalState) -> String {
+        switch state {
+        case .nominal: return "Nominal"
+        case .fair: return "Fair"
+        case .serious: return "Serious"
+        case .critical: return "Critical"
+        @unknown default: return "Unknown"
+        }
+    }
 
-    static func label(for key: String) -> String {
-        if let name = exact[key] { return name }
-        if key.hasPrefix("Tp") { return "CPU (\(key))" }
-        if key.hasPrefix("Tg") { return "GPU (\(key))" }
-        return key
+    /// nil means the caption's usual quiet secondary. Nominal and fair are
+    /// everyday states (fair just means "working hard"); serious is where
+    /// macOS starts throttling, and that deserves color.
+    nonisolated static func tint(_ state: ProcessInfo.ThermalState) -> Color? {
+        switch state {
+        case .serious: return .orange
+        case .critical: return .red
+        default: return nil
+        }
     }
 }
 

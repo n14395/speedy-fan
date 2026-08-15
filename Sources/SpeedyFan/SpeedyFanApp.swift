@@ -148,7 +148,9 @@ struct MenuBarLabel: View {
     var body: some View {
         HStack(spacing: 3) {
             if AppSettings.menuBarItems(from: itemsRaw).contains(.icon) {
-                Image(systemName: "fan.fill")
+                Image(systemName: Self.iconSymbol(
+                    userManual: controller.userManual,
+                    boostPinned: controller.boostPinned))
             }
             // Reads the controller's published stat rather than deriving one
             // from `fans`/`hottestTemp`: those change on every hardware poll,
@@ -160,7 +162,22 @@ struct MenuBarLabel: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("SpeedyFan")
-        .accessibilityValue(controller.menuBarStat ?? "")
+        .accessibilityValue([stateDescription, controller.menuBarStat]
+            .compactMap { $0 }.joined(separator: ", "))
+    }
+
+    /// The glyph says who is in charge: outline fan — the firmware (Auto);
+    /// filled fan — a user pin; flame — "Maximum Fans At" holding full
+    /// speed. State changes the app makes always pass through a refresh, so
+    /// the icon is current even when nothing is polling.
+    static func iconSymbol(userManual: Bool, boostPinned: Bool) -> String {
+        if boostPinned { return "flame.fill" }
+        return userManual ? "fan.fill" : "fan"
+    }
+
+    private var stateDescription: String? {
+        if controller.boostPinned { return "maximum fans" }
+        return controller.userManual ? "manual" : nil
     }
 
     /// The selected readings, in `MenuBarItem.allCases` order, joined for the

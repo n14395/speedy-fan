@@ -75,7 +75,11 @@ on the tab you used last, and resizes to fit whichever tab is showing.
 - **Menu bar shows** — four independent switches: the fan icon, fan speed in
   RPM, fan speed as a percentage of maximum, and the hottest sensor
   temperature. Any combination works; readings are drawn in that order
-  separated by "·", and RPM/% report the busiest fan.
+  separated by "·", and RPM/% report the busiest fan. The fan icon doubles
+  as a state light: outline while the firmware drives the fans, filled while
+  a manual pin is active, and a flame while "Maximum Fans At" holds full
+  speed — so a pinned fan is visible at a glance even with no readings
+  selected.
 - **Hide menu bar icon** — the same setting seen from the other side, in the
   same group: it switches on when nothing is selected and off when anything
   is, because a menu bar item with nothing to show is simply removed. Hiding
@@ -97,14 +101,31 @@ The panel also shows a **sparkline** of the hottest sensor over the last ten
 minutes — drawn only from polls that actually happened, so time the app spent
 not polling renders as a gap, not an invented ramp — and a collapsible
 **Sensors** list showing the individual temperature sensors behind the
-hottest-sensor summary (best-effort names; undocumented Apple Silicon sensors
-show their raw four-char SMC key). Each sensor grows a small rising/falling
-arrow once ~20 s of readings show a direction; movement under 1 °C is treated
-as noise.
+hottest-sensor summary. Sensor names are best-effort community knowledge
+(borrowed from the MIT-licensed [exelban/stats](https://github.com/exelban/stats)
+tables and keyed by chip generation, since e.g. `Tp09` is an efficiency core
+on M1 but a performance core on M2); anything unnamed shows its raw four-char
+SMC key — honest, and still enough to spot the hot one. Each sensor grows a
+small rising/falling arrow once ~20 s of readings show a direction; movement
+under 1 °C is treated as noise.
+
+A permanent **thermal pressure** caption reports macOS's own heat verdict
+(`ProcessInfo.thermalState`: Nominal / Fair / Serious / Critical, colored
+from Serious up — the levels where macOS itself starts throttling). Unlike a
+raw sensor reading it bakes in Apple's per-model knowledge of what's normal,
+and it costs nothing: the OS pushes changes, so the app never polls for it.
+
+**Stuck-fan alert**: a fan commanded to a real speed (target at or above its
+own minimum) that reports essentially no rotation for 30 s of continuous
+observation triggers an important notification and a red warning caption in
+the panel — the one hardware fault a fan app can catch early. Observation
+gaps (sleep, nothing polling) reset the clock rather than counting time
+nobody measured, and a healthy spin-up never qualifies.
 
 Notifications: "Maximum Fans At" posts a banner when it engages and releases,
 and the thermal failsafe when it trips. If notifications are denied, only the
-failsafe falls back to a modal alert — informational messages just drop.
+failsafe and the stuck-fan alert fall back to a modal alert — informational
+messages just drop.
 
 The thermal failsafe reports via a Notification Center banner (permission
 asked on first use, modal alert as fallback); only a *failed* emergency
@@ -113,9 +134,26 @@ restore still shows a modal alert.
 ## Build & run
 
 ```sh
-./build.sh        # builds release binaries and assembles SpeedyFan.app
+./build.sh        # builds SpeedyFan.app and packs SpeedyFan-<version>.dmg
 open SpeedyFan.app
 ```
+
+Every build also produces a versioned `.dmg` (the app plus a drag-to-install
+Applications symlink) ready to attach to a GitHub release. The version comes
+from `CFBundleShortVersionString` in `Info.plist` — bump it there before
+cutting a release.
+
+**Installing a downloaded build:** the app is ad-hoc signed, not notarized,
+so macOS quarantines it after download. After dragging it to Applications,
+either approve it under System Settings → Privacy & Security when first
+blocked, or clear the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/SpeedyFan.app
+```
+
+(Proper Developer ID signing + notarization would remove that step, but needs
+a paid Apple Developer account.)
 
 Requires full Xcode (the bare Command Line Tools are missing the SwiftUI macro
 plugins); `build.sh` auto-detects `/Applications/Xcode.app` or `Xcode-beta.app`.

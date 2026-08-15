@@ -1,6 +1,7 @@
 # Build products — all regenerable.
 .build/
 *.app/
+*.dmg
 # Icon intermediate; build.sh regenerates it from tools/make-icon.swift
 # whenever AppIcon.icns is missing.
 AppIcon.iconset/

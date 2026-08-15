@@ -53,6 +53,10 @@ final class FanController: ObservableObject {
     /// that run faster (open panel, supervision) can't drag it along.
     @Published private(set) var menuBarStat: String?
 
+    /// macOS's own heat verdict. Updated purely by notification — the OS
+    /// taps us when it changes, so this costs no polling at all.
+    @Published private(set) var thermalState = ProcessInfo.processInfo.thermalState
+
     private var tempKeys: [String] = []
     private var timer: Timer?
     private var timerInterval: TimeInterval?
@@ -101,6 +105,14 @@ final class FanController: ObservableObject {
             Task { @MainActor in
                 FanController.shared.syncTimer()
                 FanController.shared.syncStatTimer()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: ProcessInfo.thermalStateDidChangeNotification,
+            object: nil, queue: .main
+        ) { _ in
+            Task { @MainActor in
+                FanController.shared.thermalState = ProcessInfo.processInfo.thermalState
             }
         }
         syncStatTimer()
@@ -196,6 +208,7 @@ final class FanController: ObservableObject {
         checkAutoRevert()
         checkWatchdog()
         enforceMaxBoost()
+        checkStuckFans()
         // Manual state may have just changed, and with it the polling needs.
         syncTimer()
     }
@@ -561,6 +574,82 @@ final class FanController: ObservableObject {
             }
             self.watchdogTripping = false
         }
+    }
+
+    // MARK: - Stuck fan detection
+
+    /// Below this many RPM a fan's blades are effectively not turning.
+    nonisolated static let stuckRPMFloor: Double = 100
+
+    /// How long a fan must be continuously observed stalled before the
+    /// alert. Well above spin-up (a healthy fan reaches its minimum within a
+    /// few seconds), so a slow start never reads as a fault.
+    nonisolated static let stuckAlertAfter: TimeInterval = 30
+
+    /// Observations further apart than this don't chain — same reasoning as
+    /// the sparkline's gap rule: the slowest legitimate poll is the 20 s
+    /// menu bar cadence, so a bigger hole means we weren't watching and the
+    /// stall clock must restart rather than count time nobody measured.
+    nonisolated static let stuckObservationGap: TimeInterval = 30
+
+    /// A fan commanded to a real speed whose blades aren't turning — the one
+    /// hardware fault this app can catch early. Requiring the target to be
+    /// at least the fan's minimum (and the stall floor) mirrors `isPinned`:
+    /// a parked fan (target 0) is stopped on purpose, not stuck.
+    nonisolated static func isStalled(_ fan: FanStatus) -> Bool {
+        fan.targetRPM >= max(stuckRPMFloor, fan.minRPM)
+            && fan.actualRPM < stuckRPMFloor
+    }
+
+    struct StallRecord: Equatable {
+        var since: Date
+        var lastSeen: Date
+        var alerted: Bool
+    }
+
+    /// One observation step for a fan's stall tracking. Returns the updated
+    /// record (nil when the fan is healthy) and whether to raise the alert —
+    /// at most once per stall episode.
+    nonisolated static func stallStep(
+        _ record: StallRecord?, stalled: Bool, at now: Date
+    ) -> (record: StallRecord?, alert: Bool) {
+        guard stalled else { return (nil, false) }
+        guard var record,
+              now.timeIntervalSince(record.lastSeen) <= stuckObservationGap
+        else {
+            return (StallRecord(since: now, lastSeen: now, alerted: false), false)
+        }
+        record.lastSeen = now
+        if !record.alerted,
+           now.timeIntervalSince(record.since) >= stuckAlertAfter {
+            record.alerted = true
+            return (record, true)
+        }
+        return (record, false)
+    }
+
+    private var stallRecords: [Int: StallRecord] = [:]
+
+    /// Fans confirmed stalled (past the alert threshold); drives the panel's
+    /// warning caption.
+    @Published private(set) var stuckFans: Set<Int> = []
+
+    private func checkStuckFans() {
+        let now = Date()
+        var stuck: Set<Int> = []
+        for fan in fans {
+            let (record, alert) = Self.stallStep(
+                stallRecords[fan.id], stalled: Self.isStalled(fan), at: now)
+            stallRecords[fan.id] = record
+            if let record, record.alerted { stuck.insert(fan.id) }
+            if alert {
+                Notifier.post(
+                    title: "SpeedyFan — fan may be stuck",
+                    body: "\(fan.name) has been commanded to \(Int(fan.targetRPM)) RPM but reports \(Int(fan.actualRPM)) RPM. The fan may be stuck or failing — check for obstructions.",
+                    important: true)
+            }
+        }
+        if stuck != stuckFans { stuckFans = stuck }
     }
 
     // MARK: - Sleep and wake

@@ -246,4 +246,92 @@ final class FanControllerMathTests: XCTestCase {
         XCTAssertGreaterThan(AppSettings.failsafeTempRange.lowerBound, 70)
     }
 
+    // MARK: - Stuck fan detection
+
+    private func spinning(target: Double, actual: Double,
+                          min: Double = 1499) -> FanStatus {
+        FanStatus(id: 0, name: "Fan", actualRPM: actual, minRPM: min,
+                  maxRPM: 5348, targetRPM: target, manual: true)
+    }
+
+    func testCommandedButMotionlessFanIsStalled() {
+        XCTAssertTrue(FanController.isStalled(spinning(target: 3000, actual: 0)))
+        XCTAssertTrue(FanController.isStalled(spinning(target: 1499, actual: 50)))
+    }
+
+    func testParkedFanIsNotStalled() {
+        // Target 0 is the firmware parking a fan on purpose.
+        XCTAssertFalse(FanController.isStalled(spinning(target: 0, actual: 0)))
+    }
+
+    func testTurningFanIsNotStalled() {
+        XCTAssertFalse(FanController.isStalled(spinning(target: 3000, actual: 2900)))
+        // Even well short of the target: turning at all means not stuck.
+        XCTAssertFalse(FanController.isStalled(spinning(target: 3000, actual: 400)))
+    }
+
+    func testTinyCommandsCannotReadAsStalls() {
+        // With an unreadable minimum (0), a sub-floor target must not count:
+        // "not spinning" is meaningless when barely asked to spin.
+        XCTAssertFalse(FanController.isStalled(
+            spinning(target: 50, actual: 0, min: 0)))
+        XCTAssertTrue(FanController.isStalled(
+            spinning(target: 2000, actual: 0, min: 0)))
+    }
+
+    private func at(_ seconds: TimeInterval) -> Date {
+        Date(timeIntervalSinceReferenceDate: seconds)
+    }
+
+    func testStallEpisodeStartsQuietly() {
+        let (record, alert) = FanController.stallStep(nil, stalled: true, at: at(0))
+        XCTAssertEqual(record, FanController.StallRecord(
+            since: at(0), lastSeen: at(0), alerted: false))
+        XCTAssertFalse(alert)
+    }
+
+    func testStallAlertsOnceAfterThreshold() {
+        var (record, alert) = FanController.stallStep(nil, stalled: true, at: at(0))
+        (record, alert) = FanController.stallStep(record, stalled: true, at: at(10))
+        XCTAssertFalse(alert)  // 10 s in: could still be spin-up
+        (record, alert) = FanController.stallStep(record, stalled: true, at: at(30))
+        XCTAssertTrue(alert)   // threshold reached
+        (record, alert) = FanController.stallStep(record, stalled: true, at: at(50))
+        XCTAssertFalse(alert)  // one alert per episode
+        XCTAssertEqual(record?.alerted, true)
+    }
+
+    func testHealthyFanClearsTheEpisode() {
+        var (record, _) = FanController.stallStep(nil, stalled: true, at: at(0))
+        (record, _) = FanController.stallStep(record, stalled: false, at: at(10))
+        XCTAssertNil(record)
+        // A later stall is a fresh episode with a fresh alert.
+        let again = FanController.stallStep(record, stalled: true, at: at(20))
+        XCTAssertEqual(again.record?.since, at(20))
+    }
+
+    func testObservationGapRestartsTheClock() {
+        // 25 s observed stalled, then a hole (panel closed, sleep): the
+        // stall clock must restart, not count time nobody measured.
+        var (record, alert) = FanController.stallStep(nil, stalled: true, at: at(0))
+        (record, alert) = FanController.stallStep(record, stalled: true, at: at(25))
+        XCTAssertFalse(alert)
+        (record, alert) = FanController.stallStep(record, stalled: true, at: at(100))
+        XCTAssertFalse(alert)
+        XCTAssertEqual(record?.since, at(100))
+    }
+
+    func testStallGapExceedsTheSlowestPollingCadence() {
+        // Menu-bar-only polling refreshes as slowly as every 20 s; those
+        // observations must still chain into one episode.
+        XCTAssertGreaterThan(FanController.stuckObservationGap,
+                             TimeInterval(AppSettings.refreshSecondsRange.upperBound))
+    }
+
+    func testStallAlertWaitsOutSpinUp() {
+        // A healthy fan reaches its minimum within a few seconds of being
+        // commanded; the alert threshold must comfortably exceed that.
+        XCTAssertGreaterThanOrEqual(FanController.stuckAlertAfter, 15)
+    }
+
 }

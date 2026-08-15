@@ -1,5 +1,6 @@
 #!/bin/sh
-# Build SpeedyFan.app from the Swift package.
+# Build SpeedyFan.app from the Swift package, then pack it into a versioned
+# .dmg ready for a GitHub release.
 set -e
 cd "$(dirname "$0")"
 
@@ -31,4 +32,18 @@ fi
 cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$APP"
 
+# Disk image: the app plus a drag-to-install Applications symlink, staged in
+# a temp dir so the volume contains exactly those two things. Versioned from
+# Info.plist so release filenames sort sensibly on GitHub.
+VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Info.plist)
+DMG="SpeedyFan-$VERSION.dmg"
+STAGE=$(mktemp -d)
+trap 'rm -rf "$STAGE"' EXIT
+ditto "$APP" "$STAGE/$APP"
+ln -s /Applications "$STAGE/Applications"
+rm -f "$DMG"
+hdiutil create -quiet -volname "SpeedyFan $VERSION" -srcfolder "$STAGE" \
+    -format UDZO "$DMG"
+
 echo "Built $APP — launch with: open $APP"
+echo "Packed $DMG — ready to attach to a GitHub release"

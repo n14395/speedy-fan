@@ -64,12 +64,21 @@ final class MenuBarLabelTests: XCTestCase {
                             temp: 61.6, fahrenheit: true), "3000 · 143°")
     }
 
-    func testSensorNameKnownKeysPrefixesAndFallback() {
-        XCTAssertEqual(SensorName.label(for: "TC0P"), "CPU Proximity")
-        XCTAssertEqual(SensorName.label(for: "TA0P"), "Ambient")
-        XCTAssertEqual(SensorName.label(for: "Tp01"), "CPU (Tp01)")
-        XCTAssertEqual(SensorName.label(for: "Tg0f"), "GPU (Tg0f)")
-        XCTAssertEqual(SensorName.label(for: "TXYZ"), "TXYZ")
+    func testIconSymbolReflectsWhoControlsTheFans() {
+        // Outline = firmware, filled = user pin, flame = heat boost.
+        XCTAssertEqual(MenuBarLabel.iconSymbol(userManual: false,
+                                               boostPinned: false), "fan")
+        XCTAssertEqual(MenuBarLabel.iconSymbol(userManual: true,
+                                               boostPinned: false), "fan.fill")
+        XCTAssertEqual(MenuBarLabel.iconSymbol(userManual: false,
+                                               boostPinned: true), "flame.fill")
+    }
+
+    func testIconSymbolBoostWinsOverManual() {
+        // The two can't overlap (userManual excludes a boost pin), but if
+        // they ever did, the heat response is the more important signal.
+        XCTAssertEqual(MenuBarLabel.iconSymbol(userManual: true,
+                                               boostPinned: true), "flame.fill")
     }
 
     func testSelectedReadingsAreJoinedInDeclarationOrder() {
