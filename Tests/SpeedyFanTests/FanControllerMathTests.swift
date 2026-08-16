@@ -85,6 +85,51 @@ final class FanControllerMathTests: XCTestCase {
             status(manual: true, target: 2000, min: 0)))
     }
 
+    // MARK: - Manual-target reconciliation
+
+    private func target(current: Double?, manual: Bool, target: Double,
+                        actual: Double = 2000,
+                        writesInFlight: Bool = false) -> Double {
+        FanController.reconciledTarget(
+            current: current,
+            fan: FanStatus(id: 0, name: "Fan", actualRPM: actual, minRPM: 1499,
+                           maxRPM: 5348, targetRPM: target, manual: manual),
+            writesInFlight: writesInFlight)
+    }
+
+    func testSeedsPinnedFanFromItsRealTarget() {
+        XCTAssertEqual(target(current: nil, manual: true, target: 3424), 3424)
+    }
+
+    func testSeedsAutoFanFromItsCurrentSpeedClampedToMinimum() {
+        XCTAssertEqual(target(current: nil, manual: false, target: 1522,
+                              actual: 1530), 1530)
+        // Parked (blades stopped): start a future manual gesture at minimum.
+        XCTAssertEqual(target(current: nil, manual: true, target: 0,
+                              actual: 0), 1499)
+    }
+
+    func testAdoptsAnExternalPinWhenIdle() {
+        // The bug this exists for: app running with a stale cache, someone
+        // runs `fanctl set` in a terminal — the slider must show the truth.
+        XCTAssertEqual(target(current: 1530, manual: true, target: 3424), 3424)
+    }
+
+    func testKeepsTheCacheWhileOwnWritesAreInFlight() {
+        // The cache is ahead of the hardware here; adopting the hardware's
+        // old target would snap the slider backwards for a moment.
+        XCTAssertEqual(target(current: 3000, manual: true, target: 2500,
+                              writesInFlight: true), 3000)
+    }
+
+    func testUnpinnedFanKeepsItsRememberedManualSpeed() {
+        // Deliberately sticky: switching back to Manual resumes the last
+        // speed the user chose, not wherever the firmware happens to be.
+        XCTAssertEqual(target(current: 4000, manual: false, target: 1522), 4000)
+        // A parked fan (forced, target 0) is not a pin either.
+        XCTAssertEqual(target(current: 4000, manual: true, target: 0), 4000)
+    }
+
     // MARK: - Polling policy
 
     private func interval(menuVisible: Bool = false,

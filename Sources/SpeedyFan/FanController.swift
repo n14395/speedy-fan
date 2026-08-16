@@ -22,8 +22,16 @@ final class FanController: ObservableObject {
     @Published var helperInstalled = Helper.isInstalled
 
     // Desired manual target per fan, kept locally so the slider doesn't
-    // fight the periodic refresh while the user drags it.
+    // fight the periodic refresh while the user drags it. Reconciled against
+    // the hardware on every refresh (see `reconciledTarget`) so a pin made
+    // behind the app's back — `fanctl set` in a terminal — shows its real
+    // speed instead of a stale cache.
     @Published var manualTargets: [Int: Double] = [:]
+
+    /// Helper command batches queued but not yet finished. While non-zero,
+    /// `manualTargets` is *ahead* of the hardware (the write hasn't landed),
+    /// so reconciling from hardware would briefly snap a slider backwards.
+    private var pendingWrites = 0
 
     /// Slider position for the linked row: the busiest fan's target as a
     /// fraction of its own range.
@@ -197,11 +205,34 @@ final class FanController: ObservableObject {
         if text != menuBarStat { menuBarStat = text }
     }
 
+    /// The manual-target cache entry a fan should have after a refresh.
+    ///
+    /// - No cached value yet: seed from the hardware — a pinned fan's real
+    ///   target, otherwise the current speed so switching to Manual doesn't
+    ///   audibly jump.
+    /// - Cached value, fan pinned, no writes in flight: adopt the hardware
+    ///   target. The app's own writes always land in the cache first, so a
+    ///   disagreement here means an outside actor (`fanctl set` in a
+    ///   terminal) changed the speed — the sliders should tell the truth.
+    /// - Otherwise keep the cache: while a write is in flight the cache *is*
+    ///   the truth the hardware hasn't caught up to, and an unpinned fan's
+    ///   cache is deliberately sticky ("remember my last manual speed").
+    nonisolated static func reconciledTarget(
+        current: Double?, fan: FanStatus, writesInFlight: Bool
+    ) -> Double {
+        guard let current else {
+            return isPinned(fan) ? fan.targetRPM : max(fan.minRPM, fan.actualRPM)
+        }
+        if !writesInFlight, isPinned(fan) { return fan.targetRPM }
+        return current
+    }
+
     func refresh() {
         fans = Fans.all()
-        for fan in fans where manualTargets[fan.id] == nil {
-            manualTargets[fan.id] = Self.isPinned(fan)
-                ? fan.targetRPM : max(fan.minRPM, fan.actualRPM)
+        for fan in fans {
+            manualTargets[fan.id] = Self.reconciledTarget(
+                current: manualTargets[fan.id], fan: fan,
+                writesInFlight: pendingWrites > 0)
         }
         helperInstalled = Helper.isInstalled
         refreshTemp()
@@ -763,6 +794,7 @@ final class FanController: ObservableObject {
                            completion: ((Error?) -> Void)? = nil) {
         if !live { busy = true }
         lastError = nil
+        pendingWrites += 1
         Self.helperQueue.async {
             var failure: Error?
             for args in commands {
@@ -772,6 +804,9 @@ final class FanController: ObservableObject {
                 }
             }
             DispatchQueue.main.async {
+                // Before the refresh below, so it reconciles against a
+                // hardware state that now includes this batch.
+                self.pendingWrites -= 1
                 if let failure { self.lastError = failure.localizedDescription }
                 if !live {
                     self.busy = false
