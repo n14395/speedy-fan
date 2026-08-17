@@ -14,6 +14,11 @@ enum SettingsKey {
     static let temperatureUnit = "temperatureUnit"
     static let sensorsExpanded = "sensorsExpanded"
     static let settingsTab = "settingsTab"
+    static let notifyFailsafe = "notifyFailsafe"
+    static let notifyStuckFan = "notifyStuckFan"
+    static let notifyBoost = "notifyBoost"
+    static let notifyReturnToAuto = "notifyReturnToAuto"
+    static let notificationSound = "notificationSound"
 
     /// Written by features that no longer exist ("Minimum fan speed") or that
     /// have been migrated to a new key ("menuBarDisplay" → `menuBarItems`).
@@ -120,6 +125,13 @@ enum AppSettings {
     static var temperatureUnitRaw: String {
         UserDefaults.standard.string(forKey: SettingsKey.temperatureUnit)
             ?? TemperatureUnit.system.rawValue
+    }
+
+    /// Whether notification banners play the standard sound. Defaults to on.
+    /// (Per-event switches live on `NotificationEvent`.)
+    static var notificationSound: Bool {
+        UserDefaults.standard.object(forKey: SettingsKey.notificationSound)
+            as? Bool ?? true
     }
 
     /// Bring preferences up to date with the current feature set: migrate what

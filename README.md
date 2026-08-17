@@ -83,7 +83,12 @@ not optional:
 
 Alerts use Notification Center (permission requested on first use). If
 notifications are denied, the failsafe and the stuck-fan alert fall back to
-a modal dialog; informational messages simply drop.
+a modal dialog; informational messages simply drop. A **Notifications** tab
+in the settings window switches each category — safety alerts, the maximum
+fans boost, "returned to automatic" — and the notification sound on or off
+individually, and shows the macOS permission status. Switching a category
+off silences it entirely (the protections themselves still act), and a
+*failed* emergency return to automatic always alerts, regardless.
 
 One honest limit: the failsafe runs only while the app does. If the app is
 force-killed with fans pinned, relaunch it, run `sudo fanctl auto-all`, or

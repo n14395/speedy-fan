@@ -11,6 +11,9 @@ final class AppSettingsTests: XCTestCase {
         SettingsKey.refreshSeconds, SettingsKey.failsafeTemp,
         SettingsKey.sensorsExpanded, SettingsKey.maxFansAtTemp,
         SettingsKey.settingsTab, SettingsKey.temperatureUnit,
+        SettingsKey.notifyFailsafe, SettingsKey.notifyStuckFan,
+        SettingsKey.notifyBoost, SettingsKey.notifyReturnToAuto,
+        SettingsKey.notificationSound,
     ] + SettingsKey.retired
     private var saved: [String: Any] = [:]
 
@@ -46,12 +49,17 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(SettingsKey.maxFansAtTemp, "maxFansAtTemp")
         XCTAssertEqual(SettingsKey.settingsTab, "settingsTab")
         XCTAssertEqual(SettingsKey.temperatureUnit, "temperatureUnit")
+        XCTAssertEqual(SettingsKey.notifyFailsafe, "notifyFailsafe")
+        XCTAssertEqual(SettingsKey.notifyStuckFan, "notifyStuckFan")
+        XCTAssertEqual(SettingsKey.notifyBoost, "notifyBoost")
+        XCTAssertEqual(SettingsKey.notifyReturnToAuto, "notifyReturnToAuto")
+        XCTAssertEqual(SettingsKey.notificationSound, "notificationSound")
     }
 
     func testSettingsTabRawValuesAreStable() {
         // Persisted as the last-opened settings tab.
         XCTAssertEqual(SettingsTab.allCases.map(\.rawValue),
-                       ["general", "fans", "menuBar"])
+                       ["general", "fans", "menuBar", "notifications"])
     }
 
     func testSettingsTabFirstIsTheLeadingTab() {
@@ -91,6 +99,41 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(SettingsKey.retired,
                        ["fanFloorPercent", "factoryFanMins", "fanMinWritable",
                         "menuBarDisplay"])
+    }
+
+    // MARK: - Notifications
+
+    func testNotificationEventKeysAreStableAndDistinct() {
+        XCTAssertEqual(NotificationEvent.failsafe.settingsKey, "notifyFailsafe")
+        XCTAssertEqual(NotificationEvent.stuckFan.settingsKey, "notifyStuckFan")
+        XCTAssertEqual(NotificationEvent.boost.settingsKey, "notifyBoost")
+        XCTAssertEqual(NotificationEvent.returnToAuto.settingsKey,
+                       "notifyReturnToAuto")
+        XCTAssertEqual(Set(NotificationEvent.allCases.map(\.settingsKey)).count,
+                       NotificationEvent.allCases.count)
+    }
+
+    func testEveryNotificationEventDefaultsOnAndHonorsItsSwitch() {
+        for event in NotificationEvent.allCases {
+            XCTAssertTrue(event.enabled, "\(event.rawValue) should default on")
+            UserDefaults.standard.set(false, forKey: event.settingsKey)
+            XCTAssertFalse(event.enabled, event.rawValue)
+            UserDefaults.standard.set(true, forKey: event.settingsKey)
+            XCTAssertTrue(event.enabled, event.rawValue)
+        }
+    }
+
+    func testOnlySafetyEventsFallBackToAModalAlert() {
+        XCTAssertTrue(NotificationEvent.failsafe.important)
+        XCTAssertTrue(NotificationEvent.stuckFan.important)
+        XCTAssertFalse(NotificationEvent.boost.important)
+        XCTAssertFalse(NotificationEvent.returnToAuto.important)
+    }
+
+    func testNotificationSoundDefaultsOn() {
+        XCTAssertTrue(AppSettings.notificationSound)
+        UserDefaults.standard.set(false, forKey: SettingsKey.notificationSound)
+        XCTAssertFalse(AppSettings.notificationSound)
     }
 
     func testTemperatureUnitDefaultsToSystem() {

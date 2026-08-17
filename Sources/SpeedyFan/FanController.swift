@@ -96,7 +96,7 @@ final class FanController: ObservableObject {
             runHelper([["auto-all"]]) { error in
                 if error == nil {
                     Notifier.post(
-                        title: "SpeedyFan",
+                        .returnToAuto, title: "SpeedyFan",
                         body: "Fans were still under manual control — returned to automatic.")
                 }
             }
@@ -534,7 +534,7 @@ final class FanController: ObservableObject {
             runHelper(commands) { error in
                 if error == nil {
                     Notifier.post(
-                        title: "SpeedyFan",
+                        .boost, title: "SpeedyFan",
                         body: "A sensor reached \(trigger) — fans at maximum until it cools below \(release).")
                 }
             }
@@ -543,7 +543,7 @@ final class FanController: ObservableObject {
             runHelper([["auto-all"]]) { error in
                 if error == nil {
                     Notifier.post(
-                        title: "SpeedyFan",
+                        .boost, title: "SpeedyFan",
                         body: "Maximum fans released — fans back to automatic.")
                 }
             }
@@ -569,7 +569,7 @@ final class FanController: ObservableObject {
             runHelper([["auto-all"]]) { error in
                 if error == nil {
                     Notifier.post(
-                        title: "SpeedyFan",
+                        .returnToAuto, title: "SpeedyFan",
                         body: "Manual time limit reached — fans returned to automatic.")
                 }
             }
@@ -591,9 +591,8 @@ final class FanController: ObservableObject {
             guard let self else { return }
             if error == nil {
                 Notifier.post(
-                    title: "SpeedyFan thermal failsafe",
-                    body: "A sensor reached \(Temperature.format(temp, fahrenheit: Temperature.usesFahrenheit)) while fans were under manual control. All fans have been returned to automatic.",
-                    important: true)
+                    .failsafe, title: "SpeedyFan thermal failsafe",
+                    body: "A sensor reached \(Temperature.format(temp, fahrenheit: Temperature.usesFahrenheit)) while fans were under manual control. All fans have been returned to automatic.")
                 self.watchdogAlerted = false
             } else if !self.watchdogAlerted {
                 // Failure is act-now territory: modal, but only once —
@@ -675,9 +674,8 @@ final class FanController: ObservableObject {
             if let record, record.alerted { stuck.insert(fan.id) }
             if alert {
                 Notifier.post(
-                    title: "SpeedyFan — fan may be stuck",
-                    body: "\(fan.name) has been commanded to \(Int(fan.targetRPM)) RPM but reports \(Int(fan.actualRPM)) RPM. The fan may be stuck or failing — check for obstructions.",
-                    important: true)
+                    .stuckFan, title: "SpeedyFan — fan may be stuck",
+                    body: "\(fan.name) has been commanded to \(Int(fan.targetRPM)) RPM but reports \(Int(fan.actualRPM)) RPM. The fan may be stuck or failing — check for obstructions.")
             }
         }
         if stuck != stuckFans { stuckFans = stuck }

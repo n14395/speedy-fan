@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UserNotifications
 
 // Standalone settings window. The menu bar panel is for at-a-glance status
 // and quick fan changes; everything configurable lives here, where there is
@@ -86,12 +87,12 @@ final class SettingsTabController: NSTabViewController {
     }
 }
 
-// Three tabs for nine settings: enough to separate app housekeeping from
-// "what the fans do" from "what the menu bar shows", without scattering
-// related options across tabs the user has to hunt through. Grouping *within*
-// the Fans tab is done with section headers instead of another tab.
+// Four tabs: app housekeeping, what the fans do, what the menu bar shows,
+// and when to speak up — without scattering related options across tabs the
+// user has to hunt through. Grouping *within* a tab is done with section
+// headers instead of another tab.
 enum SettingsTab: String, CaseIterable {
-    case general, fans, menuBar
+    case general, fans, menuBar, notifications
 
     /// The tab a fresh install — or a stored tag that no longer matches any
     /// tab — lands on.
@@ -106,6 +107,7 @@ enum SettingsTab: String, CaseIterable {
         case .general: return "General"
         case .fans: return "Fans"
         case .menuBar: return "Menu Bar"
+        case .notifications: return "Notifications"
         }
     }
 
@@ -114,6 +116,7 @@ enum SettingsTab: String, CaseIterable {
         case .general: return "gearshape"
         case .fans: return "fan.fill"
         case .menuBar: return "menubar.rectangle"
+        case .notifications: return "bell.badge"
         }
     }
 
@@ -129,6 +132,7 @@ enum SettingsTab: String, CaseIterable {
         case .general: controller = NSHostingController(rootView: AnyView(GeneralSettingsTab().paneWidth()))
         case .fans: controller = NSHostingController(rootView: AnyView(FanSettingsTab().paneWidth()))
         case .menuBar: controller = NSHostingController(rootView: AnyView(MenuBarSettingsTab().paneWidth()))
+        case .notifications: controller = NSHostingController(rootView: AnyView(NotificationSettingsTab().paneWidth()))
         }
         controller.sizingOptions = [.preferredContentSize]
         return controller
@@ -376,6 +380,123 @@ private struct GeneralSettingsTab: View {
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn {
             controller.uninstallHelper()
+        }
+    }
+}
+
+// MARK: - Notifications
+
+private struct NotificationSettingsTab: View {
+    @AppStorage(SettingsKey.notifyFailsafe) private var notifyFailsafe = true
+    @AppStorage(SettingsKey.notifyStuckFan) private var notifyStuckFan = true
+    @AppStorage(SettingsKey.notifyBoost) private var notifyBoost = true
+    @AppStorage(SettingsKey.notifyReturnToAuto) private var notifyReturnToAuto = true
+    @AppStorage(SettingsKey.notificationSound) private var notificationSound = true
+
+    /// nil until the first async query answers (or forever, running unbundled
+    /// via `swift run`, where UNUserNotificationCenter isn't available).
+    @State private var authorization: UNAuthorizationStatus?
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Thermal failsafe", isOn: $notifyFailsafe)
+                Toggle("Stuck fan", isOn: $notifyStuckFan)
+            } header: {
+                Text("Safety alerts")
+            } footer: {
+                Note("""
+                When the failsafe returns hot fans to automatic, and when a \
+                fan is commanded to spin but isn't turning. If banners are \
+                unavailable these show as alert windows instead; switching \
+                them off here silences them entirely. The protections \
+                themselves always act, and a failed emergency return to \
+                automatic always alerts.
+                """)
+            }
+
+            Section {
+                Toggle("Maximum fans", isOn: $notifyBoost)
+                Toggle("Returned to automatic", isOn: $notifyReturnToAuto)
+            } header: {
+                Text("Automation")
+            } footer: {
+                Note("""
+                Maximum fans covers engaging and releasing. Returned to \
+                automatic covers the manual time limit, and leftover manual \
+                control cleaned up at launch.
+                """)
+            }
+
+            Section {
+                Toggle("Play sound", isOn: $notificationSound)
+            } footer: {
+                Note("The standard notification sound, on banners only.")
+            }
+
+            Section {
+                LabeledContent("macOS notifications") {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 7, height: 7)
+                        Text(statusText)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Button("Open System Settings…") { openNotificationSettings() }
+            } footer: {
+                Note("""
+                macOS asks for permission the first time SpeedyFan posts a \
+                banner. If it was denied, allow SpeedyFan under System \
+                Settings → Notifications.
+                """)
+            }
+        }
+        .formStyle(.grouped)
+        .fixedSize(horizontal: false, vertical: true)
+        .onAppear(perform: refreshAuthorization)
+        // Coming back from System Settings should show the new answer.
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAuthorization()
+        }
+    }
+
+    private var statusText: String {
+        switch authorization {
+        case .authorized, .provisional: return "Allowed"
+        case .denied: return "Denied"
+        case .notDetermined: return "Not requested yet"
+        default: return "Unknown"
+        }
+    }
+
+    private var statusColor: Color {
+        switch authorization {
+        case .authorized, .provisional: return .green
+        case .denied: return .orange
+        default: return .gray
+        }
+    }
+
+    private func refreshAuthorization() {
+        // Same guard as Notifier: no bundle (bare `swift run`) means no
+        // notification center to ask.
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                authorization = settings.authorizationStatus
+            }
+        }
+    }
+
+    private func openNotificationSettings() {
+        // The Ventura+ Notifications pane; if a future macOS renames the
+        // anchor, fall back to System Settings itself.
+        for raw in ["x-apple.systempreferences:com.apple.Notifications-Settings.extension",
+                    "x-apple.systempreferences:"] {
+            if let url = URL(string: raw), NSWorkspace.shared.open(url) { return }
         }
     }
 }
