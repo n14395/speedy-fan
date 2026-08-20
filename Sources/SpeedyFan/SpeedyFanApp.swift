@@ -146,23 +146,25 @@ struct MenuBarLabel: View {
     @AppStorage(SettingsKey.menuBarItems) private var itemsRaw = AppSettings.defaultMenuBarItemsRaw
 
     var body: some View {
+        // Reads the controller's published parts rather than deriving them
+        // from `fans`/`hottestTemp`: those change on every hardware poll,
+        // which would make the menu bar update at the panel's or the
+        // failsafe's cadence instead of the user's chosen interval.
+        let parts = controller.menuBarParts
         HStack(spacing: 3) {
             if AppSettings.menuBarItems(from: itemsRaw).contains(.icon) {
                 Image(systemName: Self.iconSymbol(
                     userManual: controller.userManual,
                     boostPinned: controller.boostPinned))
             }
-            // Reads the controller's published stat rather than deriving one
-            // from `fans`/`hottestTemp`: those change on every hardware poll,
-            // which would make the menu bar update at the panel's or the
-            // failsafe's cadence instead of the user's chosen interval.
-            if let text = controller.menuBarStat {
-                Text(text).monospacedDigit()
+            if !parts.isEmpty {
+                Text(parts.joined(separator: Self.inlineSeparator))
+                    .monospacedDigit()
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("SpeedyFan")
-        .accessibilityValue([stateDescription, controller.menuBarStat]
+        .accessibilityValue(([stateDescription] + parts.map { Optional($0) })
             .compactMap { $0 }.joined(separator: ", "))
     }
 
@@ -180,20 +182,31 @@ struct MenuBarLabel: View {
         return controller.userManual ? "manual" : nil
     }
 
-    /// The selected readings, in `MenuBarItem.allCases` order, joined for the
-    /// menu bar. nil when no reading is selected — the icon alone, or nothing.
-    /// The busiest fan is the interesting one, so RPM/% report the maximum
-    /// across fans rather than an average.
-    static func statusText(items: Set<MenuBarItem>, fans: [FanStatus],
-                           hottestTemp: Double?, fahrenheit: Bool) -> String? {
-        let parts = MenuBarItem.allCases
+    /// The selected readings that have a value right now, in
+    /// `MenuBarItem.allCases` order. The busiest fan is the interesting one,
+    /// so RPM/% report the maximum across fans rather than an average.
+    static func statusParts(items: Set<MenuBarItem>, fans: [FanStatus],
+                            hottestTemp: Double?,
+                            fahrenheit: Bool) -> [String] {
+        MenuBarItem.allCases
             .filter { items.contains($0) }
             .compactMap {
                 reading($0, fans: fans, hottestTemp: hottestTemp,
                         fahrenheit: fahrenheit)
             }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
+
+    /// Those readings as the menu bar's single-line text; nil when there are
+    /// none — the icon alone, or nothing.
+    static func statusText(items: Set<MenuBarItem>, fans: [FanStatus],
+                           hottestTemp: Double?, fahrenheit: Bool) -> String? {
+        let parts = statusParts(items: items, fans: fans,
+                                hottestTemp: hottestTemp,
+                                fahrenheit: fahrenheit)
+        return parts.isEmpty ? nil : parts.joined(separator: inlineSeparator)
+    }
+
+    static let inlineSeparator = " · "
 
     private static func reading(_ item: MenuBarItem, fans: [FanStatus],
                                 hottestTemp: Double?,

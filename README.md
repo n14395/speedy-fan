@@ -42,9 +42,13 @@ can't quietly hurt the machine.
   per-model knowledge of what's normal, and it costs nothing: the OS pushes
   changes, so the app never polls for it.
 - **Maximum Fans At** (off by default) — a heat response: when the hottest
-  sensor reaches a trigger temperature (85–100 °C), every fan is driven to
-  maximum — overriding Auto *and* manual pins — and held until the sensor
-  cools 10 °C below the trigger.
+  sensor *stays* at a trigger temperature (85–100 °C) for 15 seconds, every
+  fan is driven to maximum — overriding Auto *and* manual pins — and held
+  until the sensor cools 10 °C below the trigger, and for at least a minute
+  either way. Both delays exist because die sensors spike for a second or
+  two under any burst of load: without them a passing spike engaged and
+  released the boost within seconds, over and over. Switching the feature
+  off, or losing the sensors, still releases immediately.
 - **Return to Automatic After** — an optional 15 / 30 / 60-minute timer
   that ends manual control with a notification, with a countdown shown in
   the panel.

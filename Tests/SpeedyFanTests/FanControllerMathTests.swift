@@ -247,10 +247,17 @@ final class FanControllerMathTests: XCTestCase {
 
     // MARK: - Maximum fans at temperature
 
+    /// Defaults describe the steady state the older tests assumed: heat that
+    /// has already lasted long enough to engage, and a boost old enough to be
+    /// allowed to release.
     private func boost(pinned: Bool = false, armedTemp: Int? = 90,
-                       hottest: Double? = 80) -> FanController.BoostAction {
+                       hottest: Double? = 80,
+                       hotFor: TimeInterval? = FanController.boostEngageDelay,
+                       pinnedFor: TimeInterval? = FanController.boostMinimumHold)
+    -> FanController.BoostAction {
         FanController.boostAction(pinned: pinned, armedTemp: armedTemp,
-                                  hottest: hottest)
+                                  hottest: hottest, hotFor: hotFor,
+                                  pinnedFor: pinnedFor)
     }
 
     func testBoostFiresAtOrAboveArmedTemp() {
@@ -282,6 +289,59 @@ final class FanControllerMathTests: XCTestCase {
 
     func testBoostHysteresisMarginIsPositive() {
         XCTAssertGreaterThan(FanController.boostReleaseMargin, 0)
+    }
+
+    // MARK: - Boost anti-flapping
+    //
+    // Real notification log from this machine, before these rules existed:
+    //   10:59:15 engaged … 10:59:25 released   (10 s)
+    //   11:03:39 engaged … 11:03:46 released   ( 7 s)
+    // A die sensor spiking past the trigger for one poll was enough to run a
+    // whole engage/release cycle, and each cycle posted two banners.
+
+    func testMomentarySpikeDoesNotEngage() {
+        // At the trigger, but only just arrived there.
+        XCTAssertEqual(boost(hottest: 95, hotFor: 0), .hold)
+        XCTAssertEqual(boost(hottest: 95, hotFor: 2), .hold)
+        // Sensor not currently hot at all: no clock running.
+        XCTAssertEqual(boost(hottest: 95, hotFor: nil), .hold)
+    }
+
+    func testSustainedHeatEngages() {
+        XCTAssertEqual(
+            boost(hottest: 95, hotFor: FanController.boostEngageDelay), .boost)
+        XCTAssertEqual(boost(hottest: 95, hotFor: 600), .boost)
+    }
+
+    func testFreshBoostHoldsEvenOnceCool() {
+        // Cool enough to release, but engaged seconds ago — this is exactly
+        // the 7-second cycle from the log above.
+        XCTAssertEqual(boost(pinned: true, hottest: 70, pinnedFor: 7), .hold)
+        XCTAssertEqual(boost(pinned: true, hottest: 70,
+                             pinnedFor: FanController.boostMinimumHold - 1), .hold)
+    }
+
+    func testBoostReleasesOnceTheMinimumHoldHasPassed() {
+        XCTAssertEqual(boost(pinned: true, hottest: 70,
+                             pinnedFor: FanController.boostMinimumHold), .release)
+    }
+
+    func testMinimumHoldNeverOutranksSafetyReleases() {
+        // Losing the sensors, or the user switching the feature off, releases
+        // immediately however fresh the boost is.
+        XCTAssertEqual(boost(pinned: true, hottest: nil, pinnedFor: 1), .release)
+        XCTAssertEqual(boost(pinned: true, armedTemp: nil, hottest: 100,
+                             pinnedFor: 1), .release)
+    }
+
+    func testEngageDelaySpansSeveralSupervisionPolls() {
+        // Supervision samples every 2 s; the delay has to cover enough polls
+        // that one twitchy reading can't carry it.
+        XCTAssertGreaterThanOrEqual(
+            FanController.boostEngageDelay,
+            FanController.failsafePollInterval * 4)
+        // And a hold long enough that a cycle can't repeat within a minute.
+        XCTAssertGreaterThanOrEqual(FanController.boostMinimumHold, 60)
     }
 
     func testFailsafeTemperatureRangeIsBelowSensorPlausibilityCeiling() {

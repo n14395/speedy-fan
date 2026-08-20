@@ -56,10 +56,12 @@ final class FanController: ObservableObject {
     /// True while "Maximum Fans At" is holding every fan at full speed.
     @Published private(set) var boostPinned = false
 
-    /// Text for the menu bar item, republished only at the user's chosen
-    /// interval. The menu bar reads this and nothing else, so hardware polls
-    /// that run faster (open panel, supervision) can't drag it along.
-    @Published private(set) var menuBarStat: String?
+    /// The menu bar item's readings, republished only at the user's chosen
+    /// interval. The menu bar reads these and nothing else, so hardware polls
+    /// that run faster (open panel, supervision) can't drag it along. Kept
+    /// as separate parts rather than one string because the compact layout
+    /// stacks them on their own lines.
+    @Published private(set) var menuBarParts: [String] = []
 
     /// macOS's own heat verdict. Updated purely by notification — the OS
     /// taps us when it changes, so this costs no polling at all.
@@ -186,7 +188,7 @@ final class FanController: ObservableObject {
         statTimer?.invalidate()
         statTimer = nil
         guard items.contains(where: \.isReading) else {
-            menuBarStat = nil
+            menuBarParts = []
             return
         }
         statTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
@@ -199,10 +201,11 @@ final class FanController: ObservableObject {
 
     private func statTick() {
         refresh()
-        let text = MenuBarLabel.statusText(items: AppSettings.menuBarItems,
-                                           fans: fans, hottestTemp: hottestTemp,
-                                           fahrenheit: Temperature.usesFahrenheit)
-        if text != menuBarStat { menuBarStat = text }
+        let parts = MenuBarLabel.statusParts(
+            items: AppSettings.menuBarItems, fans: fans,
+            hottestTemp: hottestTemp,
+            fahrenheit: Temperature.usesFahrenheit)
+        if parts != menuBarParts { menuBarParts = parts }
     }
 
     /// The manual-target cache entry a fan should have after a refresh.
@@ -488,6 +491,19 @@ final class FanController: ObservableObject {
     /// below the trigger, so the boost doesn't flap around the threshold.
     nonisolated static let boostReleaseMargin = 10
 
+    /// The trigger temperature must hold for this long before the boost
+    /// engages. Apple Silicon die sensors spike for a second or two under any
+    /// burst of load, and the hottest-of-~200-sensors summary is the twitchiest
+    /// signal there is; answering a spike that has already passed with full
+    /// fans made the boost engage and release within seconds, over and over,
+    /// posting a pair of notifications each time.
+    nonisolated static let boostEngageDelay: TimeInterval = 15
+
+    /// And once engaged it holds at least this long even if the sensor has
+    /// already cooled — the other half of the same anti-flapping story.
+    /// Disarming the setting, or losing the sensors, still releases at once.
+    nonisolated static let boostMinimumHold: TimeInterval = 60
+
     enum BoostAction: Equatable {
         case boost, release, hold
     }
@@ -496,55 +512,92 @@ final class FanController: ObservableObject {
     /// the setting is off. Boost overrides user-manual control too — it's a
     /// heat response, and full speed can't under-cool. A missing reading
     /// while boosted releases rather than holding blind.
+    ///
+    /// `hotFor` is how long the hottest sensor has been at or above the
+    /// trigger (nil when it isn't right now); `pinnedFor` how long the boost
+    /// has been engaged (nil when it isn't). Both are clocks the caller keeps,
+    /// so this stays a pure decision.
     nonisolated static func boostAction(
-        pinned: Bool, armedTemp: Int?, hottest: Double?
+        pinned: Bool, armedTemp: Int?, hottest: Double?,
+        hotFor: TimeInterval?, pinnedFor: TimeInterval?
     ) -> BoostAction {
         guard let armedTemp else { return pinned ? .release : .hold }
         if pinned {
-            guard let hottest, hottest > Double(armedTemp - boostReleaseMargin)
-            else { return .release }
-            return .hold
+            // Blind releases at once: holding full speed on no evidence is
+            // worse than stopping, so the minimum hold must not outrank it.
+            guard let hottest else { return .release }
+            if hottest > Double(armedTemp - boostReleaseMargin) { return .hold }
+            guard let pinnedFor, pinnedFor >= boostMinimumHold else { return .hold }
+            return .release
         }
         guard let hottest, hottest >= Double(armedTemp) else { return .hold }
+        guard let hotFor, hotFor >= boostEngageDelay else { return .hold }
         return .boost
     }
+
+    /// When the hottest sensor first reached the trigger, and when the boost
+    /// engaged — the clocks behind `boostEngageDelay` and `boostMinimumHold`.
+    private var boostHotSince: Date?
+    private var boostPinnedSince: Date?
 
     /// Called from every refresh, and directly when the setting changes.
     func enforceMaxBoost() {
         guard Helper.isInstalled, !busy, !fans.isEmpty else { return }
         // The failsafe, quit restore, or an external `fanctl auto-all` can
         // release the pin behind our back.
-        if boostPinned && !anyManual { boostPinned = false }
+        if boostPinned && !anyManual {
+            boostPinned = false
+            boostPinnedSince = nil
+        }
 
         let armed = AppSettings.maxFansAtTemp
-        switch Self.boostAction(pinned: boostPinned,
-                                armedTemp: armed == 0 ? nil : armed,
-                                hottest: hottestTemp) {
+        let armedTemp = armed == 0 ? nil : armed
+        let now = Date()
+
+        // The engage clock restarts the moment the sensor drops back below the
+        // trigger, so only *sustained* heat accumulates towards the delay.
+        if let armedTemp, let hottest = hottestTemp,
+           hottest >= Double(armedTemp) {
+            if boostHotSince == nil { boostHotSince = now }
+        } else {
+            boostHotSince = nil
+        }
+
+        // Both messages quote these, so they're built once for the whole step.
+        let useF = Temperature.usesFahrenheit
+        let trigger = Temperature.format(Double(armed), fahrenheit: useF)
+        let release = Temperature.format(
+            Double(armed - Self.boostReleaseMargin), fahrenheit: useF)
+
+        switch Self.boostAction(
+            pinned: boostPinned, armedTemp: armedTemp, hottest: hottestTemp,
+            hotFor: boostHotSince.map { now.timeIntervalSince($0) },
+            pinnedFor: boostPinnedSince.map { now.timeIntervalSince($0) }
+        ) {
         case .boost:
             boostPinned = true
+            boostPinnedSince = now
             var commands: [[String]] = []
             for fan in fans {
                 manualTargets[fan.id] = fan.maxRPM
                 commands.append(["set", String(fan.id), String(Int(fan.maxRPM))])
             }
-            let useF = Temperature.usesFahrenheit
-            let trigger = Temperature.format(Double(armed), fahrenheit: useF)
-            let release = Temperature.format(
-                Double(armed - Self.boostReleaseMargin), fahrenheit: useF)
             runHelper(commands) { error in
                 if error == nil {
                     Notifier.post(
-                        .boost, title: "SpeedyFan",
-                        body: "A sensor reached \(trigger) — fans at maximum until it cools below \(release).")
+                        .boost, title: "SpeedyFan — Maximum fans",
+                        body: "A sensor has stayed at \(trigger) — holding every fan at full speed until it cools below \(release).")
                 }
             }
         case .release:
             boostPinned = false
+            boostPinnedSince = nil
+            boostHotSince = nil
             runHelper([["auto-all"]]) { error in
                 if error == nil {
                     Notifier.post(
-                        .boost, title: "SpeedyFan",
-                        body: "Maximum fans released — fans back to automatic.")
+                        .boost, title: "SpeedyFan — Maximum fans",
+                        body: "Cooled below \(release) — the full-speed hold has ended.")
                 }
             }
         case .hold:
@@ -705,6 +758,8 @@ final class FanController: ObservableObject {
             }
             : nil
         boostPinned = false
+        boostPinnedSince = nil
+        boostHotSince = nil
         guard Helper.isInstalled, anyManual else { return }
         // Synchronous: the sleep notification gives us very little time, and a
         // background hop would very likely not finish before the machine goes.
