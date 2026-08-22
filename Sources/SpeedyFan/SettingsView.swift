@@ -422,9 +422,10 @@ private struct NotificationSettingsTab: View {
                 Text("Automation")
             } footer: {
                 Note("""
-                Maximum fans covers engaging and releasing. Returned to \
-                automatic covers the manual time limit, and leftover manual \
-                control cleaned up at launch.
+                Maximum fans covers engaging and releasing, once per bout of \
+                heat however many times the fans are called on during it. \
+                Returned to automatic covers the manual time limit, and \
+                leftover manual control cleaned up at launch.
                 """)
             }
 

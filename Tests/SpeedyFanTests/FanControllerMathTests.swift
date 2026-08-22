@@ -344,6 +344,67 @@ final class FanControllerMathTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(FanController.boostMinimumHold, 60)
     }
 
+    // MARK: - Boost notification episodes
+
+    // The anti-flapping rules above stopped the seconds-long cycles, but a
+    // real workload still crosses the trigger again and again as it runs.
+    // Log from this machine with those rules in place — every hold a genuine,
+    // minimum-length one, and every pair another two banners:
+    //   09:28:31 engaged … 09:29:32 released
+    //   09:35:00 engaged … 09:36:01 released
+    //   09:39:01 engaged … 09:40:58 released
+    //   09:42:30 engaged … 09:43:31 released
+    //   09:50:17 engaged … 09:51:43 released
+    // One episode of work, twelve notifications.
+
+    func testFirstEverBoostIsAlwaysAnEpisode() {
+        XCTAssertTrue(FanController.startsBoostEpisode(lastActive: nil,
+                                                       now: at(0)))
+    }
+
+    func testReEngagingSoonAfterIsTheSameEpisode() {
+        // The 09:29:32 → 09:35:00 gap from the log: 5½ minutes, same workload.
+        XCTAssertFalse(FanController.startsBoostEpisode(lastActive: at(0),
+                                                        now: at(328)))
+        XCTAssertFalse(FanController.startsBoostEpisode(
+            lastActive: at(0), now: at(FanController.boostEpisodeGap - 1)))
+    }
+
+    func testEngagingAfterALongCoolSpellIsANewEpisode() {
+        XCTAssertTrue(FanController.startsBoostEpisode(
+            lastActive: at(0), now: at(FanController.boostEpisodeGap)))
+        // 08:06:58 → 09:28:31 in the log: a different piece of work entirely.
+        XCTAssertTrue(FanController.startsBoostEpisode(lastActive: at(0),
+                                                       now: at(4893)))
+    }
+
+    func testTheLoggedBurstWouldAnnounceOnlyOnce() {
+        // Replay the five cycles above, keeping the clock the way
+        // enforceMaxBoost does: every engage and every hold marks the boost
+        // active, so the gap is measured from when it last stopped.
+        let cycles: [(engage: TimeInterval, release: TimeInterval)] = [
+            (0, 61), (389, 450), (630, 747), (839, 900), (1306, 1392),
+        ]
+        var lastActive: Date?
+        var announced = 0
+        for cycle in cycles {
+            if FanController.startsBoostEpisode(lastActive: lastActive,
+                                                now: at(cycle.engage)) {
+                announced += 1
+            }
+            lastActive = at(cycle.release)
+        }
+        XCTAssertEqual(announced, 1)
+    }
+
+    func testEpisodeGapOutlastsAWholeBoostCycle() {
+        // Otherwise a single cycle could age out of its own episode and the
+        // very next crossing would announce itself again.
+        XCTAssertGreaterThan(FanController.boostEpisodeGap,
+                             FanController.boostMinimumHold
+                                + FanController.boostEngageDelay)
+    }
+
     func testFailsafeTemperatureRangeIsBelowSensorPlausibilityCeiling() {
         // Sensors discards readings >= 120 as implausible; every allowed
         // failsafe threshold must be reachable by real readings.

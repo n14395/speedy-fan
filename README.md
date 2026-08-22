@@ -48,7 +48,11 @@ can't quietly hurt the machine.
   either way. Both delays exist because die sensors spike for a second or
   two under any burst of load: without them a passing spike engaged and
   released the boost within seconds, over and over. Switching the feature
-  off, or losing the sensors, still releases immediately.
+  off, or losing the sensors, still releases immediately. Sustained work
+  crosses the trigger repeatedly as it heats and cools, and the boost
+  answers every crossing — but notifies only about the first, staying quiet
+  until the machine has been cool for ten minutes, so one long build is one
+  notification rather than dozens.
 - **Return to Automatic After** — an optional 15 / 30 / 60-minute timer
   that ends manual control with a notification, with a countdown shown in
   the panel.

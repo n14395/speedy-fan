@@ -504,6 +504,22 @@ final class FanController: ObservableObject {
     /// Disarming the setting, or losing the sensors, still releases at once.
     nonisolated static let boostMinimumHold: TimeInterval = 60
 
+    /// Engages this close together are one thermal episode, not two events.
+    /// A sustained workload crosses the trigger, cools under full fans, and
+    /// crosses it again a few minutes later, over and over for as long as the
+    /// work lasts. The boost has to answer every one of those crossings; the
+    /// user only needs telling about the first, so an episode is announced
+    /// once and stays quiet until the machine has been cool for a while.
+    nonisolated static let boostEpisodeGap: TimeInterval = 600
+
+    /// Whether engaging now begins a new episode. `lastActive` is when the
+    /// boost was last engaged or still holding — nil if it hasn't run at all.
+    nonisolated static func startsBoostEpisode(lastActive: Date?,
+                                               now: Date) -> Bool {
+        guard let lastActive else { return true }
+        return now.timeIntervalSince(lastActive) >= boostEpisodeGap
+    }
+
     enum BoostAction: Equatable {
         case boost, release, hold
     }
@@ -540,6 +556,13 @@ final class FanController: ObservableObject {
     private var boostHotSince: Date?
     private var boostPinnedSince: Date?
 
+    /// The last moment the boost was engaged, and whether the episode it
+    /// belongs to was announced — the two things `boostEpisodeGap` needs.
+    /// `boostAnnounced` also keeps the pair honest: no "it has ended" banner
+    /// for a hold whose start was never mentioned.
+    private var boostLastActive: Date?
+    private var boostAnnounced = false
+
     /// Called from every refresh, and directly when the setting changes.
     func enforceMaxBoost() {
         guard Helper.isInstalled, !busy, !fans.isEmpty else { return }
@@ -575,33 +598,45 @@ final class FanController: ObservableObject {
             pinnedFor: boostPinnedSince.map { now.timeIntervalSince($0) }
         ) {
         case .boost:
+            let announce = Self.startsBoostEpisode(lastActive: boostLastActive,
+                                                   now: now)
+            boostAnnounced = announce
             boostPinned = true
             boostPinnedSince = now
+            boostLastActive = now
             var commands: [[String]] = []
             for fan in fans {
                 manualTargets[fan.id] = fan.maxRPM
                 commands.append(["set", String(fan.id), String(Int(fan.maxRPM))])
             }
             runHelper(commands) { error in
-                if error == nil {
+                if error == nil, announce {
                     Notifier.post(
                         .boost, title: "SpeedyFan — Maximum fans",
                         body: "A sensor has stayed at \(trigger) — holding every fan at full speed until it cools below \(release).")
                 }
             }
         case .release:
+            // Say nothing for a hold nobody was told about, and nothing about
+            // cooling when the release is really the setting being switched
+            // off — there is no trigger temperature left to quote.
+            let announce = boostAnnounced && armedTemp != nil
+            boostAnnounced = false
             boostPinned = false
             boostPinnedSince = nil
             boostHotSince = nil
+            boostLastActive = now
             runHelper([["auto-all"]]) { error in
-                if error == nil {
+                if error == nil, announce {
                     Notifier.post(
                         .boost, title: "SpeedyFan — Maximum fans",
                         body: "Cooled below \(release) — the full-speed hold has ended.")
                 }
             }
         case .hold:
-            break
+            // A hold that is still boosting keeps its episode alive, so the
+            // gap is measured from the end of the last boost, not its start.
+            if boostPinned { boostLastActive = now }
         }
     }
 
@@ -760,6 +795,8 @@ final class FanController: ObservableObject {
         boostPinned = false
         boostPinnedSince = nil
         boostHotSince = nil
+        boostLastActive = nil
+        boostAnnounced = false
         guard Helper.isInstalled, anyManual else { return }
         // Synchronous: the sleep notification gives us very little time, and a
         // background hop would very likely not finish before the machine goes.
