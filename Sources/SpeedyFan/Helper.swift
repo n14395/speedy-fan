@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import SMCCore
 
@@ -80,6 +81,52 @@ enum Helper {
         guard status == 0, !isInstalled else {
             throw HelperError.uninstallFailed(err.isEmpty ? "cancelled" : err)
         }
+    }
+
+    /// Whether the installed helper differs from the one inside this app
+    /// bundle. Compared by content, because `FanctlProtocol.version` only
+    /// covers changes to the *command set*: a fix to how an existing command
+    /// behaves ships in the app and would otherwise never reach the copy in
+    /// /Library, where the privileged work actually happens.
+    ///
+    /// Unreadable or missing files are never reported stale — "we can't tell"
+    /// must not become "update available", which would offer a password
+    /// prompt that fixes nothing.
+    static var installedIsStale: Bool {
+        guard isInstalled, let bundled = bundledPath else { return false }
+        guard let stamp = fileStamp(installedPath) else { return false }
+        if let cached = staleCache, cached.stamp == stamp { return cached.stale }
+        let stale = isStale(bundled: digest(bundled),
+                            installed: digest(installedPath))
+        staleCache = (stamp, stale)
+        return stale
+    }
+
+    /// The comparison itself. A digest we couldn't compute reads as "not
+    /// stale": offering an update we can't justify would cost a password
+    /// prompt and fix nothing.
+    static func isStale(bundled: String?, installed: String?) -> Bool {
+        guard let bundled, let installed else { return false }
+        return bundled != installed
+    }
+
+    /// Digesting two 140 KB files on every poll would be pure waste, so the
+    /// verdict is cached against the installed file's identity. Any install
+    /// or uninstall changes that identity, which invalidates it for free.
+    private static var staleCache: (stamp: String, stale: Bool)?
+
+    private static func fileStamp(_ path: String) -> String? {
+        var st = stat()
+        guard stat(path, &st) == 0 else { return nil }
+        return "\(st.st_ino)-\(st.st_size)-\(st.st_mtimespec.tv_sec)"
+    }
+
+    private static func digest(_ path: String) -> String? {
+        guard let data = FileManager.default.contents(atPath: path) else {
+            return nil
+        }
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }
+            .joined()
     }
 
     /// Command-set version of the installed helper. A helper predating the

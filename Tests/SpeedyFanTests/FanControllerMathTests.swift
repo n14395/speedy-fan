@@ -247,17 +247,17 @@ final class FanControllerMathTests: XCTestCase {
 
     // MARK: - Maximum fans at temperature
 
-    /// Defaults describe the steady state the older tests assumed: heat that
-    /// has already lasted long enough to engage, and a boost old enough to be
-    /// allowed to release.
+    /// Defaults describe the steady state the older tests assumed: a boost
+    /// old enough to be allowed to release. `hottest` is always the smoothed
+    /// reading — jitter is filtered before boostAction sees anything.
     private func boost(pinned: Bool = false, armedTemp: Int? = 90,
                        hottest: Double? = 80,
-                       hotFor: TimeInterval? = FanController.boostEngageDelay,
-                       pinnedFor: TimeInterval? = FanController.boostMinimumHold)
+                       pinnedFor: TimeInterval? = FanController.boostMinimumHold,
+                       releaseMargin: Int = FanController.boostReleaseMarginDefault)
     -> FanController.BoostAction {
         FanController.boostAction(pinned: pinned, armedTemp: armedTemp,
-                                  hottest: hottest, hotFor: hotFor,
-                                  pinnedFor: pinnedFor)
+                                  hottest: hottest, pinnedFor: pinnedFor,
+                                  releaseMargin: releaseMargin)
     }
 
     func testBoostFiresAtOrAboveArmedTemp() {
@@ -288,35 +288,127 @@ final class FanControllerMathTests: XCTestCase {
     }
 
     func testBoostHysteresisMarginIsPositive() {
-        XCTAssertGreaterThan(FanController.boostReleaseMargin, 0)
+        XCTAssertGreaterThan(FanController.boostReleaseMarginDefault, 0)
     }
 
-    // MARK: - Boost anti-flapping
+    func testAWiderMarginHoldsLonger() {
+        // Trigger 90. At the default the boost is done at 80; widened to 25
+        // the same reading is still too warm to let go.
+        XCTAssertEqual(boost(pinned: true, hottest: 80), .release)
+        XCTAssertEqual(boost(pinned: true, hottest: 80, releaseMargin: 25),
+                       .hold)
+        XCTAssertEqual(boost(pinned: true, hottest: 65, releaseMargin: 25),
+                       .release)
+    }
+
+    func testEveryOfferedMarginStillReleasesOnASensibleReading() {
+        // A margin that could never be satisfied would strand the fans at
+        // full speed, so each one must release against some real reading.
+        for margin in AppSettings.boostReleaseMarginRange {
+            XCTAssertEqual(
+                boost(pinned: true, armedTemp: 105,
+                      hottest: Double(105 - margin), releaseMargin: margin),
+                .release, "margin \(margin)")
+        }
+    }
+
+    // MARK: - Boost signal smoothing
     //
-    // Real notification log from this machine, before these rules existed:
-    //   10:59:15 engaged … 10:59:25 released   (10 s)
-    //   11:03:39 engaged … 11:03:46 released   ( 7 s)
-    // A die sensor spiking past the trigger for one poll was enough to run a
-    // whole engage/release cycle, and each cycle posted two banners.
+    // The hottest-of-216-sensors reading is extremely twitchy. Measured on
+    // this machine at idle, one second apart:
+    //   18:58:19  71.2   18:58:20  72.7   18:58:21  65.0
+    // Thresholding that raw produced engage/release cycles 7-10 s long. The
+    // first fix demanded the raw value stay past the trigger for 15 s, which
+    // stopped the flapping but engaged late: on a measured ramp the trigger
+    // was crossed at 18:59:52 and the fans moved at 19:00:09, by which time
+    // the machine was 2.7 °C hotter. Smoothing replaced that delay.
 
-    func testMomentarySpikeDoesNotEngage() {
-        // At the trigger, but only just arrived there.
-        XCTAssertEqual(boost(hottest: 95, hotFor: 0), .hold)
-        XCTAssertEqual(boost(hottest: 95, hotFor: 2), .hold)
-        // Sensor not currently hot at all: no clock running.
-        XCTAssertEqual(boost(hottest: 95, hotFor: nil), .hold)
+    /// A history of one sample per second ending `now`, oldest value first.
+    private func history(_ values: [Double],
+                         endingAt now: Date) -> [FanController.TempSample] {
+        values.enumerated().map { index, value in
+            FanController.TempSample(
+                time: now.addingTimeInterval(Double(index) - Double(values.count - 1)),
+                value: value)
+        }
     }
 
-    func testSustainedHeatEngages() {
-        XCTAssertEqual(
-            boost(hottest: 95, hotFor: FanController.boostEngageDelay), .boost)
-        XCTAssertEqual(boost(hottest: 95, hotFor: 600), .boost)
+    func testSmoothingIgnoresALoneSpike() {
+        let now = at(0)
+        // Four calm samples and one absurd one: the median stays calm.
+        let spiked = history([70, 71, 105, 70, 72], endingAt: now)
+        XCTAssertEqual(FanController.smoothedHottest(spiked, now: now), 71)
+    }
+
+    func testSmoothingIgnoresALoneDip() {
+        let now = at(0)
+        // The mirror case: one cool reading must not release a hot machine.
+        let dipped = history([96, 97, 64, 96, 98], endingAt: now)
+        XCTAssertEqual(FanController.smoothedHottest(dipped, now: now), 96)
+    }
+
+    func testSmoothingIgnoresSamplesOlderThanTheWindow() {
+        let now = at(0)
+        let stale = [FanController.TempSample(
+            time: now.addingTimeInterval(-FanController.boostSmoothingWindow - 1),
+            value: 105)]
+        XCTAssertNil(FanController.smoothedHottest(stale, now: now))
+        // A fresh sample alongside it decides alone.
+        let mixed = stale + history([70], endingAt: now)
+        XCTAssertEqual(FanController.smoothedHottest(mixed, now: now), 70)
+    }
+
+    func testSmoothingWithNoHistoryIsBlind() {
+        XCTAssertNil(FanController.smoothedHottest([], now: at(0)))
+    }
+
+    func testSmoothingUsesAShortHistoryAsItStands() {
+        // Just after launch there is barely any history; a genuinely hot
+        // machine still gets its fans rather than waiting for a full window.
+        let now = at(0)
+        XCTAssertEqual(FanController.smoothedHottest(history([97], endingAt: now),
+                                                     now: now), 97)
+    }
+
+    func testMeasuredRampEngagesSoonerThanTheOldDelayDid() {
+        // The real capture, one sample per second. The raw value first
+        // crosses 95 at index 9; the old rule waited 15 s beyond that.
+        let ramp: [Double] = [93.1, 92.8, 93.6, 93.7, 94.0, 94.3, 94.8, 94.6,
+                              94.7, 95.1, 95.5, 95.6, 95.8, 95.9, 96.2]
+        let crossing = 9
+        var engagedAt: Int?
+        for end in 0..<ramp.count where engagedAt == nil {
+            let now = at(Double(end))
+            let smoothed = FanController.smoothedHottest(
+                history(Array(ramp[0...end]), endingAt: now), now: now)
+            if FanController.boostAction(pinned: false, armedTemp: 95,
+                                         hottest: smoothed,
+                                         pinnedFor: nil) == .boost {
+                engagedAt = end
+            }
+        }
+        let engaged = try! XCTUnwrap(engagedAt)
+        // Late enough that the crossing was real...
+        XCTAssertGreaterThan(engaged, crossing)
+        // ...and well inside the 15 s the old sustained-heat rule needed.
+        XCTAssertLessThan(engaged - crossing, 15)
+    }
+
+    func testSmoothingWindowSpansSeveralSupervisionPolls() {
+        // Supervision samples every 2 s; the window has to hold enough of
+        // them that a median means something.
+        XCTAssertGreaterThanOrEqual(
+            FanController.boostSmoothingWindow,
+            FanController.failsafePollInterval * 4)
+    }
+
+    func testMinimumHoldStillOutlastsACommandBurst() {
+        XCTAssertGreaterThanOrEqual(FanController.boostMinimumHold,
+                                    FanController.failsafePollInterval * 4)
     }
 
     func testFreshBoostHoldsEvenOnceCool() {
-        // Cool enough to release, but engaged seconds ago — this is exactly
-        // the 7-second cycle from the log above.
-        XCTAssertEqual(boost(pinned: true, hottest: 70, pinnedFor: 7), .hold)
+        XCTAssertEqual(boost(pinned: true, hottest: 70, pinnedFor: 1), .hold)
         XCTAssertEqual(boost(pinned: true, hottest: 70,
                              pinnedFor: FanController.boostMinimumHold - 1), .hold)
     }
@@ -332,16 +424,6 @@ final class FanControllerMathTests: XCTestCase {
         XCTAssertEqual(boost(pinned: true, hottest: nil, pinnedFor: 1), .release)
         XCTAssertEqual(boost(pinned: true, armedTemp: nil, hottest: 100,
                              pinnedFor: 1), .release)
-    }
-
-    func testEngageDelaySpansSeveralSupervisionPolls() {
-        // Supervision samples every 2 s; the delay has to cover enough polls
-        // that one twitchy reading can't carry it.
-        XCTAssertGreaterThanOrEqual(
-            FanController.boostEngageDelay,
-            FanController.failsafePollInterval * 4)
-        // And a hold long enough that a cycle can't repeat within a minute.
-        XCTAssertGreaterThanOrEqual(FanController.boostMinimumHold, 60)
     }
 
     // MARK: - Boost notification episodes
@@ -402,7 +484,7 @@ final class FanControllerMathTests: XCTestCase {
         // very next crossing would announce itself again.
         XCTAssertGreaterThan(FanController.boostEpisodeGap,
                              FanController.boostMinimumHold
-                                + FanController.boostEngageDelay)
+                                + FanController.boostSmoothingWindow)
     }
 
     func testFailsafeTemperatureRangeIsBelowSensorPlausibilityCeiling() {

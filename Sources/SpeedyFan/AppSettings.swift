@@ -11,6 +11,7 @@ enum SettingsKey {
     static let refreshSeconds = "refreshSeconds"
     static let failsafeTemp = "failsafeTemp"
     static let maxFansAtTemp = "maxFansAtTemp"
+    static let boostReleaseMargin = "boostReleaseMargin"
     static let temperatureUnit = "temperatureUnit"
     static let sensorsExpanded = "sensorsExpanded"
     static let settingsTab = "settingsTab"
@@ -118,6 +119,25 @@ enum AppSettings {
     static var maxFansAtTemp: Int {
         let stored = UserDefaults.standard.integer(forKey: SettingsKey.maxFansAtTemp)
         return stored == 0 ? 0 : stored.clamped(to: maxFansAtTempRange)
+    }
+
+    /// How far below the trigger the hottest sensor must fall before the
+    /// boost lets go. The floor is the hysteresis that stops the boost
+    /// flapping around one threshold; above that it is taste — a wider gap
+    /// means fewer, longer bouts of full speed.
+    ///
+    /// Worth knowing when choosing: Apple Silicon's hottest sensor idles
+    /// around 70–80 °C, so a wide margin under a low trigger can name a
+    /// release temperature this Mac reaches only when it is doing nothing at
+    /// all. The settings pane shows the resulting temperature for that
+    /// reason.
+    static let boostReleaseMarginRange = 10...25
+    static let boostReleaseMarginDefault = 10
+
+    static var boostReleaseMargin: Int {
+        let stored = UserDefaults.standard.object(forKey: SettingsKey.boostReleaseMargin)
+            as? Int ?? boostReleaseMarginDefault
+        return stored.clamped(to: boostReleaseMarginRange)
     }
 
     /// The stored temperature-unit choice; TemperatureUnit.init(rawValue:)

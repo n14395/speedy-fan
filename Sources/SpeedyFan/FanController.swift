@@ -20,6 +20,10 @@ final class FanController: ObservableObject {
     @Published var lastError: String?
     @Published var busy = false
     @Published var helperInstalled = Helper.isInstalled
+    /// The installed helper is older than the one in this app bundle. Never
+    /// acted on automatically: replacing it costs an admin password prompt,
+    /// and springing that on someone mid-task is worse than showing a button.
+    @Published var helperStale = Helper.installedIsStale
 
     // Desired manual target per fan, kept locally so the slider doesn't
     // fight the periodic refresh while the user drags it. Reconciled against
@@ -238,6 +242,7 @@ final class FanController: ObservableObject {
                 writesInFlight: pendingWrites > 0)
         }
         helperInstalled = Helper.isInstalled
+        helperStale = Helper.installedIsStale
         refreshTemp()
         checkAutoRevert()
         checkWatchdog()
@@ -489,20 +494,45 @@ final class FanController: ObservableObject {
 
     /// Once boosted, stay at full speed until the sensor cools this many °C
     /// below the trigger, so the boost doesn't flap around the threshold.
-    nonisolated static let boostReleaseMargin = 10
+    /// Default hysteresis; the live value is `AppSettings.boostReleaseMargin`
+    /// and is passed into `boostAction` so the decision stays a pure function
+    /// of its inputs.
+    nonisolated static let boostReleaseMarginDefault =
+        AppSettings.boostReleaseMarginDefault
 
-    /// The trigger temperature must hold for this long before the boost
-    /// engages. Apple Silicon die sensors spike for a second or two under any
-    /// burst of load, and the hottest-of-~200-sensors summary is the twitchiest
-    /// signal there is; answering a spike that has already passed with full
-    /// fans made the boost engage and release within seconds, over and over,
-    /// posting a pair of notifications each time.
-    nonisolated static let boostEngageDelay: TimeInterval = 15
+    /// Boost decisions run on the *median* hottest reading over this long,
+    /// not on the instantaneous one. The hottest-of-~200-sensors summary is
+    /// the twitchiest signal the app has — measured on an idle M1 Max it
+    /// swings ~8 °C between consecutive samples — so a raw threshold flaps.
+    /// A median discards those outliers at the source, which beats the
+    /// obvious alternative of demanding the raw value stay past the trigger
+    /// for N seconds: that delays every genuine crossing by the full N while
+    /// the machine keeps heating, and one stray cool sample restarts it.
+    nonisolated static let boostSmoothingWindow: TimeInterval = 10
 
-    /// And once engaged it holds at least this long even if the sensor has
-    /// already cooled — the other half of the same anti-flapping story.
-    /// Disarming the setting, or losing the sensors, still releases at once.
-    nonisolated static let boostMinimumHold: TimeInterval = 60
+    /// Once engaged the boost holds at least this long. With a smoothed
+    /// signal there is no flapping left to prevent — the median cannot cross
+    /// both thresholds in seconds — so this is only here to stop a burst of
+    /// helper commands. Disarming the setting, or losing the sensors,
+    /// still releases at once.
+    nonisolated static let boostMinimumHold: TimeInterval = 10
+
+    /// The temperature the boost decides on: the middle of the recent
+    /// samples, so a lone spike (or a lone dip) can't move it. Even-sized
+    /// windows take the upper middle, which errs towards cooling.
+    ///
+    /// A short history — the first seconds after launch or wake — is used as
+    /// it stands rather than refused: with one sample this is the raw
+    /// reading, and a machine whose hottest sensor really is at the trigger
+    /// the moment we start looking wants the fans anyway.
+    nonisolated static func smoothedHottest(_ history: [TempSample],
+                                            now: Date) -> Double? {
+        let cutoff = now.addingTimeInterval(-boostSmoothingWindow)
+        let values = history.filter { $0.time >= cutoff }
+            .map(\.value).sorted()
+        guard !values.isEmpty else { return nil }
+        return values[values.count / 2]
+    }
 
     /// Engages this close together are one thermal episode, not two events.
     /// A sustained workload crosses the trigger, cools under full fans, and
@@ -529,31 +559,29 @@ final class FanController: ObservableObject {
     /// heat response, and full speed can't under-cool. A missing reading
     /// while boosted releases rather than holding blind.
     ///
-    /// `hotFor` is how long the hottest sensor has been at or above the
-    /// trigger (nil when it isn't right now); `pinnedFor` how long the boost
-    /// has been engaged (nil when it isn't). Both are clocks the caller keeps,
-    /// so this stays a pure decision.
+    /// `hottest` is the smoothed reading, not the raw one — the jitter is
+    /// filtered before it gets here. `pinnedFor` is how long the boost has
+    /// been engaged (nil when it isn't), a clock the caller keeps, so this
+    /// stays a pure decision.
     nonisolated static func boostAction(
         pinned: Bool, armedTemp: Int?, hottest: Double?,
-        hotFor: TimeInterval?, pinnedFor: TimeInterval?
+        pinnedFor: TimeInterval?,
+        releaseMargin: Int = boostReleaseMarginDefault
     ) -> BoostAction {
         guard let armedTemp else { return pinned ? .release : .hold }
         if pinned {
             // Blind releases at once: holding full speed on no evidence is
             // worse than stopping, so the minimum hold must not outrank it.
             guard let hottest else { return .release }
-            if hottest > Double(armedTemp - boostReleaseMargin) { return .hold }
+            if hottest > Double(armedTemp - releaseMargin) { return .hold }
             guard let pinnedFor, pinnedFor >= boostMinimumHold else { return .hold }
             return .release
         }
         guard let hottest, hottest >= Double(armedTemp) else { return .hold }
-        guard let hotFor, hotFor >= boostEngageDelay else { return .hold }
         return .boost
     }
 
-    /// When the hottest sensor first reached the trigger, and when the boost
-    /// engaged — the clocks behind `boostEngageDelay` and `boostMinimumHold`.
-    private var boostHotSince: Date?
+    /// When the boost engaged — the clock behind `boostMinimumHold`.
     private var boostPinnedSince: Date?
 
     /// The last moment the boost was engaged, and whether the episode it
@@ -577,25 +605,23 @@ final class FanController: ObservableObject {
         let armedTemp = armed == 0 ? nil : armed
         let now = Date()
 
-        // The engage clock restarts the moment the sensor drops back below the
-        // trigger, so only *sustained* heat accumulates towards the delay.
-        if let armedTemp, let hottest = hottestTemp,
-           hottest >= Double(armedTemp) {
-            if boostHotSince == nil { boostHotSince = now }
-        } else {
-            boostHotSince = nil
-        }
+        // Losing the sensors altogether must release at once, so that check
+        // reads the live value: the "release blind" safety property would
+        // otherwise inherit the smoothing window's lag.
+        let decisionTemp = hottestTemp == nil
+            ? nil : Self.smoothedHottest(tempHistory, now: now)
 
         // Both messages quote these, so they're built once for the whole step.
         let useF = Temperature.usesFahrenheit
         let trigger = Temperature.format(Double(armed), fahrenheit: useF)
+        let margin = AppSettings.boostReleaseMargin
         let release = Temperature.format(
-            Double(armed - Self.boostReleaseMargin), fahrenheit: useF)
+            Double(armed - margin), fahrenheit: useF)
 
         switch Self.boostAction(
-            pinned: boostPinned, armedTemp: armedTemp, hottest: hottestTemp,
-            hotFor: boostHotSince.map { now.timeIntervalSince($0) },
-            pinnedFor: boostPinnedSince.map { now.timeIntervalSince($0) }
+            pinned: boostPinned, armedTemp: armedTemp, hottest: decisionTemp,
+            pinnedFor: boostPinnedSince.map { now.timeIntervalSince($0) },
+            releaseMargin: margin
         ) {
         case .boost:
             let announce = Self.startsBoostEpisode(lastActive: boostLastActive,
@@ -613,7 +639,7 @@ final class FanController: ObservableObject {
                 if error == nil, announce {
                     Notifier.post(
                         .boost, title: "SpeedyFan — Maximum fans",
-                        body: "A sensor has stayed at \(trigger) — holding every fan at full speed until it cools below \(release).")
+                        body: "Temperatures reached \(trigger) — holding every fan at full speed until they cool below \(release).")
                 }
             }
         case .release:
@@ -624,7 +650,6 @@ final class FanController: ObservableObject {
             boostAnnounced = false
             boostPinned = false
             boostPinnedSince = nil
-            boostHotSince = nil
             boostLastActive = now
             runHelper([["auto-all"]]) { error in
                 if error == nil, announce {
@@ -794,7 +819,6 @@ final class FanController: ObservableObject {
             : nil
         boostPinned = false
         boostPinnedSince = nil
-        boostHotSince = nil
         boostLastActive = nil
         boostAnnounced = false
         guard Helper.isInstalled, anyManual else { return }
@@ -854,12 +878,28 @@ final class FanController: ObservableObject {
         if anyManual { try? Helper.fanctl(["auto-all"]) }
     }
 
+    /// Install the helper on request, which is also how it is *updated*:
+    /// installing copies the bundled binary over whatever is there. Any fan
+    /// write installs it on demand anyway, so this exists to make that step
+    /// visible and reversible: a settings pane that can only ever remove the
+    /// helper reads like a one-way door.
+    func installHelper() {
+        runHelperTask { try Helper.install() }
+    }
+
     func uninstallHelper() {
+        runHelperTask { try Helper.uninstall() }
+    }
+
+    /// Shared shape of the two helper lifecycle actions: both prompt for an
+    /// admin password on the helper queue, then refresh so `helperInstalled`
+    /// — and the button that reads it — reflects the new state.
+    private func runHelperTask(_ work: @escaping () throws -> Void) {
         busy = true
         lastError = nil
         Self.helperQueue.async {
             var errorText: String?
-            do { try Helper.uninstall() } catch { errorText = error.localizedDescription }
+            do { try work() } catch { errorText = error.localizedDescription }
             DispatchQueue.main.async {
                 self.busy = false
                 self.lastError = errorText

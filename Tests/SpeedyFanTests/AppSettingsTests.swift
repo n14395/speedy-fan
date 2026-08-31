@@ -13,7 +13,7 @@ final class AppSettingsTests: XCTestCase {
         SettingsKey.settingsTab, SettingsKey.temperatureUnit,
         SettingsKey.notifyFailsafe, SettingsKey.notifyStuckFan,
         SettingsKey.notifyBoost, SettingsKey.notifyReturnToAuto,
-        SettingsKey.notificationSound,
+        SettingsKey.notificationSound, SettingsKey.boostReleaseMargin,
     ] + SettingsKey.retired
     private var saved: [String: Any] = [:]
 
@@ -288,5 +288,61 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(IconVisibility.isVisible)
         IconVisibility.show()
         XCTAssertTrue(IconVisibility.isVisible)
+    }
+}
+
+final class BoostReleaseMarginTests: XCTestCase {
+    private let key = SettingsKey.boostReleaseMargin
+    private var saved: Any?
+
+    override func setUp() {
+        saved = UserDefaults.standard.object(forKey: key)
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+
+    override func tearDown() {
+        if let saved { UserDefaults.standard.set(saved, forKey: key) }
+        else { UserDefaults.standard.removeObject(forKey: key) }
+    }
+
+    func testDefaultsToTheHysteresisFloor() {
+        XCTAssertEqual(AppSettings.boostReleaseMargin, 10)
+        XCTAssertEqual(AppSettings.boostReleaseMarginRange.lowerBound, 10)
+    }
+
+    func testRoundTripsAndClamps() {
+        UserDefaults.standard.set(20, forKey: key)
+        XCTAssertEqual(AppSettings.boostReleaseMargin, 20)
+        // Below the floor the boost would flap around one threshold again.
+        UserDefaults.standard.set(2, forKey: key)
+        XCTAssertEqual(AppSettings.boostReleaseMargin, 10)
+        UserDefaults.standard.set(90, forKey: key)
+        XCTAssertEqual(AppSettings.boostReleaseMargin, 25)
+    }
+
+    func testEveryMarginIsOfferedByTheFiveStepPicker() {
+        // The picker strides by 5; the range has to land on a multiple.
+        let range = AppSettings.boostReleaseMarginRange
+        XCTAssertEqual((range.upperBound - range.lowerBound) % 5, 0)
+    }
+}
+
+// MARK: - Helper freshness
+
+final class HelperStalenessTests: XCTestCase {
+    func testMatchingDigestsAreNotStale() {
+        XCTAssertFalse(Helper.isStale(bundled: "abc", installed: "abc"))
+    }
+
+    func testDifferingDigestsAreStale() {
+        XCTAssertTrue(Helper.isStale(bundled: "abc", installed: "def"))
+    }
+
+    func testAnUnreadableFileIsNeverReportedStale() {
+        // "We can't tell" must not surface as "update available": the button
+        // it would show costs an admin password and fixes nothing.
+        XCTAssertFalse(Helper.isStale(bundled: nil, installed: "abc"))
+        XCTAssertFalse(Helper.isStale(bundled: "abc", installed: nil))
+        XCTAssertFalse(Helper.isStale(bundled: nil, installed: nil))
     }
 }

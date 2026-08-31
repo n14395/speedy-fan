@@ -168,9 +168,27 @@ private struct FanSettingsTab: View {
     @AppStorage(SettingsKey.autoRevertMinutes) private var autoRevertMinutes = 0
     @AppStorage(SettingsKey.failsafeTemp) private var failsafeTemp = AppSettings.failsafeTempDefault
     @AppStorage(SettingsKey.maxFansAtTemp) private var maxFansAtTemp = 0
+    @AppStorage(SettingsKey.boostReleaseMargin) private var boostReleaseMargin =
+        AppSettings.boostReleaseMarginDefault
     @AppStorage(SettingsKey.temperatureUnit) private var temperatureUnitRaw = TemperatureUnit.system.rawValue
 
     private var useF: Bool { Temperature.usesFahrenheit(setting: temperatureUnitRaw) }
+
+    /// The temperature the boost lets go at, and its formatted form.
+    private var releaseTemp: Int { maxFansAtTemp - boostReleaseMargin }
+
+    private var releaseTempText: String {
+        Temperature.format(Double(releaseTemp), fahrenheit: useF)
+    }
+
+    /// Top of the idle band this tab already quotes. A release temperature
+    /// down here is one the machine only reaches when it has stopped working.
+    private let idleCeiling = 80
+
+    private var sensorCountText: String {
+        let count = controller.sensorReadings.count
+        return count > 0 ? " of the \(count) on this Mac" : ""
+    }
 
     var body: some View {
         Form {
@@ -203,7 +221,12 @@ private struct FanSettingsTab: View {
             } header: {
                 Text("Temperature protection")
             } footer: {
-                Note("If a sensor reaches this while fans are set by hand, they all return to automatic.")
+                Note("""
+                If the hottest sensor reaches this while fans are set by \
+                hand, they all return to automatic. Judged on the live \
+                reading rather than a smoothed one — a real spike should act \
+                at once.
+                """)
             }
 
             Section {
@@ -217,18 +240,54 @@ private struct FanSettingsTab: View {
                             .tag(temp)
                     }
                 }
+                Picker("Hold until it cools by", selection: Binding(
+                    get: { boostReleaseMargin },
+                    set: { boostReleaseMargin = $0; controller.enforceMaxBoost() }
+                )) {
+                    ForEach(Array(stride(from: AppSettings.boostReleaseMarginRange.lowerBound,
+                                         through: AppSettings.boostReleaseMarginRange.upperBound,
+                                         by: 5)), id: \.self) { delta in
+                        Text(Temperature.formatDelta(delta, fahrenheit: useF))
+                            .tag(delta)
+                    }
+                }
+                .disabled(maxFansAtTemp == 0)
             } footer: {
-                Note("""
-                All fans go to full speed when a sensor reaches this — \
-                overriding automatic and manual — until it cools \
-                \(Temperature.formatDelta(FanController.boostReleaseMargin, fahrenheit: useF)) below.
-                """)
+                VStack(alignment: .leading, spacing: 6) {
+                    Note("""
+                    All fans go to full speed when the hottest sensor reaches \
+                    this — overriding automatic and manual — and stay there \
+                    until it falls to \(releaseTempText). Judged on the \
+                    median of the last ten seconds, not a single reading: the \
+                    hottest-sensor figure swings several degrees between \
+                    samples.
+                    """)
+                    // The wide margins are only safe against a high trigger.
+                    // Naming a release temperature the machine reaches only
+                    // at rest would hold the fans at full speed for ages.
+                    if maxFansAtTemp > 0, releaseTemp <= idleCeiling {
+                        Label("""
+                        \(releaseTempText) is around this Mac's idle \
+                        temperature, so the fans could stay at full speed for \
+                        a long time. Pair a wide margin with a higher trigger.
+                        """, systemImage: "exclamationmark.triangle.fill")
+                            .font(.callout)
+                            .foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
 
             Section {
                 // The number most likely to be set wrongly is a threshold
                 // chosen against a PC-shaped intuition about idle temps.
-                Note("Apple silicon sensors read \(Temperature.formatRange(70, 80, fahrenheit: useF)) at idle; the panel's Sensors list shows what this Mac reports.")
+                Note("""
+                Every temperature SpeedyFan shows or acts on is the hottest \
+                single sensor\(sensorCountText), never an average — one hot \
+                core is what matters. Apple silicon sensors read \
+                \(Temperature.formatRange(70, 80, fahrenheit: useF)) at idle; \
+                the panel's Sensors list shows what this Mac reports.
+                """)
             }
         }
         .formStyle(.grouped)
@@ -272,9 +331,11 @@ private struct MenuBarSettingsTab: View {
                 Text("Menu bar shows")
             } footer: {
                 Note("""
-                Speed readings report the busiest fan. Turn everything off to \
-                hide SpeedyFan from the menu bar — it keeps running, and the \
-                icon comes back next launch so you can't lock yourself out.
+                Speed readings report the busiest fan and the temperature the \
+                hottest sensor — maximums, not averages. Turn everything off \
+                to hide SpeedyFan from the menu bar — it keeps running, and \
+                the icon comes back next launch so you can't lock yourself \
+                out.
                 """)
             }
 
@@ -336,19 +397,40 @@ private struct GeneralSettingsTab: View {
                 LabeledContent("Helper tool") {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(controller.helperInstalled ? Color.green : Color.orange)
+                            .fill(helperState.tint)
                             .frame(width: 7, height: 7)
-                        Text(controller.helperInstalled ? "Installed" : "Not installed")
+                        Text(helperState.label)
                             .foregroundStyle(.secondary)
                     }
                 }
-                Button("Uninstall Helper…") { confirmUninstallHelper() }
-                    .disabled(!controller.helperInstalled)
+                // Mirrors the state above rather than sitting there dimmed:
+                // uninstalling is only reasonable if it can be undone from
+                // the same place it was done.
+                HStack {
+                    switch helperState {
+                    case .missing:
+                        Button("Install Helper…") { controller.installHelper() }
+                    case .stale:
+                        // Installing over the top is the update, so this is
+                        // the same action under the name that describes it.
+                        Button("Update Helper…") { controller.installHelper() }
+                        Button("Uninstall Helper…") { confirmUninstallHelper() }
+                    case .current:
+                        Button("Uninstall Helper…") { confirmUninstallHelper() }
+                    }
+                }
+                .disabled(controller.busy)
+                // Both buttons can fail — a cancelled password prompt is the
+                // common one — and the panel that normally reports errors
+                // isn't open while the settings window is.
+                if let error = controller.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } footer: {
-                Note("""
-                Fan changes need admin rights, so SpeedyFan installs a small \
-                helper once. Uninstalling returns fans to automatic.
-                """)
+                Note(helperState.explanation)
             }
 
             Section {
@@ -357,6 +439,50 @@ private struct GeneralSettingsTab: View {
         }
         .formStyle(.grouped)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// The helper's three real states. Kept as one value so the dot, the
+    /// wording and the buttons can't disagree with each other.
+    private enum HelperState {
+        case missing, stale, current
+
+        var label: String {
+            switch self {
+            case .missing: return "Not installed"
+            case .stale: return "Update available"
+            case .current: return "Installed"
+            }
+        }
+
+        var tint: Color { self == .current ? .green : .orange }
+
+        var explanation: String {
+            switch self {
+            case .missing:
+                return """
+                Fan changes need admin rights. Installing asks for an admin \
+                password once, after which changes apply silently — or just \
+                move a fan slider and SpeedyFan will ask then.
+                """
+            case .stale:
+                return """
+                SpeedyFan has been updated but the installed helper hasn't. \
+                Fan control still works; updating applies the newer helper \
+                and asks for an admin password once.
+                """
+            case .current:
+                return """
+                Fan changes need admin rights, so SpeedyFan installs a small \
+                helper once. Uninstalling returns fans to automatic; \
+                SpeedyFan keeps working read-only.
+                """
+            }
+        }
+    }
+
+    private var helperState: HelperState {
+        guard controller.helperInstalled else { return .missing }
+        return controller.helperStale ? .stale : .current
     }
 
     private var versionString: String {
@@ -372,8 +498,9 @@ private struct GeneralSettingsTab: View {
         Fans will be returned to automatic, then the helper is removed from \
         /Library/PrivilegedHelperTools (admin password required).
 
-        SpeedyFan keeps running read-only; the next manual fan change will \
-        offer to reinstall the helper.
+        SpeedyFan keeps running read-only. This button becomes “Install \
+        Helper…” afterwards, and any manual fan change will offer to \
+        reinstall it too.
         """
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")

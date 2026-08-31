@@ -75,7 +75,7 @@ struct MenuView: View {
                     tint: .red)
         }
         if controller.boostPinned {
-            Caption("Maximum fans — full speed until below \(Temperature.format(Double(maxFansAtTemp - FanController.boostReleaseMargin), fahrenheit: useF))",
+            Caption("Maximum fans — full speed until below \(Temperature.format(Double(maxFansAtTemp - AppSettings.boostReleaseMargin), fahrenheit: useF))",
                     systemImage: "flame")
         }
         if controller.userManual {
@@ -201,16 +201,26 @@ struct MenuView: View {
         .accessibilityLabel("Settings")
     }
 
+    /// Fan control keeps working with a stale helper, so this says what is
+    /// true without implying anything is broken.
+    private var helperStatus: String {
+        guard controller.helperInstalled else {
+            return "Helper not installed — first change will ask for an admin password"
+        }
+        return controller.helperStale
+            ? "Helper update available — see Settings"
+            : "Helper installed"
+    }
+
     private var footer: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(controller.helperInstalled ? Color.green : Color.orange)
+                    .fill(controller.helperInstalled && !controller.helperStale
+                          ? Color.green : Color.orange)
                     .frame(width: 7, height: 7)
                     .accessibilityHidden(true)
-                Text(controller.helperInstalled
-                     ? "Helper installed"
-                     : "Helper not installed — first change will ask for an admin password")
+                Text(helperStatus)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

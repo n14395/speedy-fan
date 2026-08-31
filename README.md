@@ -27,6 +27,13 @@ can't quietly hurt the machine.
   firmware is in charge, *filled* while a manual pin is active, and a
   *flame* while the heat boost holds — so a pinned fan is visible at a
   glance even with no readings selected.
+- **Every temperature is a maximum, never an average.** The panel summary,
+  the menu bar reading, the failsafe and the boost all act on the single
+  hottest sensor of the ~200 discovered — one hot core is what matters, and
+  averaging would bury it. Fan speed readings are likewise the busiest fan.
+  The two protections differ only in *when* they look: the failsafe uses the
+  live reading so a real spike acts at once, the boost uses a ten-second
+  median so jitter can't flap it.
 - **Temperatures** — a hottest-sensor summary, a ten-minute **sparkline**
   (drawn only from polls that actually happened: time spent not polling
   renders as a gap, not an invented ramp), and a collapsible list of the
@@ -42,17 +49,24 @@ can't quietly hurt the machine.
   per-model knowledge of what's normal, and it costs nothing: the OS pushes
   changes, so the app never polls for it.
 - **Maximum Fans At** (off by default) — a heat response: when the hottest
-  sensor *stays* at a trigger temperature (85–100 °C) for 15 seconds, every
-  fan is driven to maximum — overriding Auto *and* manual pins — and held
-  until the sensor cools 10 °C below the trigger, and for at least a minute
-  either way. Both delays exist because die sensors spike for a second or
-  two under any burst of load: without them a passing spike engaged and
-  released the boost within seconds, over and over. Switching the feature
-  off, or losing the sensors, still releases immediately. Sustained work
-  crosses the trigger repeatedly as it heats and cools, and the boost
-  answers every crossing — but notifies only about the first, staying quiet
-  until the machine has been cool for ten minutes, so one long build is one
-  notification rather than dozens.
+  sensor reaches a trigger temperature (85–100 °C), every fan is driven to
+  maximum — overriding Auto *and* manual pins — and held until it cools
+  a settable **10–25 °C** below the trigger (10 is the hysteresis floor that
+  stops it flapping; wider means fewer, longer bouts of full speed, and the
+  settings pane names the resulting temperature and warns when it lands in
+  the idle band this Mac rarely leaves). The decision runs on the **median**
+  of the last
+  ten seconds of readings rather than the instantaneous one: the
+  hottest-of-~200-sensors summary swings around 8 °C between consecutive
+  samples even at idle, so a raw threshold flaps on and off. Filtering the
+  signal rather than delaying the decision keeps the response prompt — on a
+  measured ramp, full fans at 96 °C where a "must stay hot for 15 seconds"
+  rule waited until 98 °C. Switching the feature off, or losing the
+  sensors, releases immediately. Sustained work crosses the trigger
+  repeatedly as it heats and cools, and the boost answers every crossing —
+  but notifies only about the first, staying quiet until the machine has
+  been cool for ten minutes, so one long build is one notification rather
+  than dozens.
 - **Return to Automatic After** — an optional 15 / 30 / 60-minute timer
   that ends manual control with a notification, with a countdown shown in
   the panel.
@@ -137,8 +151,17 @@ Reading the SMC needs no privileges; **writing needs root**. On your first
 manual change the app installs its helper CLI (`fanctl`) once to
 `/Library/PrivilegedHelperTools/com.speedyfan.fanctl` as setuid-root — one
 admin password prompt — after which slider changes apply silently. The
-settings window shows the install status and offers an **Uninstall Helper**
-button (fans are returned to automatic first).
+settings window shows the install status and offers **Install**, **Update**
+or **Uninstall Helper** as appropriate (uninstalling returns fans to
+automatic first).
+
+Updating the app does not by itself update the installed helper: fan writes
+reinstall it automatically only when the *command set* changes
+(`FanctlProtocol.version`), so a fix to how an existing command behaves would
+otherwise never reach `/Library`. SpeedyFan therefore compares the installed
+copy with the bundled one by content digest and offers **Update Helper** when
+they differ — a rebuild that leaves `fanctl` unchanged produces identical
+bytes, so this stays quiet unless the helper really moved.
 
 ## Notes on the SMC (hard-won)
 
