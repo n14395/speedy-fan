@@ -1,10 +1,9 @@
 # SpeedyFan
 
-A small macOS menu bar utility for watching and controlling the cooling fans
-in Apple Silicon Macs: live RPM and temperatures in a popup panel, each fan —
-or all of them linked — switchable between the firmware's automatic control
-and a manually pinned speed, with enough supervision that manual control
-can't quietly hurt the machine.
+A macOS menu bar app for monitoring and controlling the fans in Apple Silicon
+Macs. Live RPM and temperatures in a popup panel, and each fan — or all of them
+at once — switchable between the firmware's automatic control and a manual
+speed.
 
 <p align="center">
   <img src="docs/panel.png" width="320" alt="The SpeedyFan panel">
@@ -12,225 +11,135 @@ can't quietly hurt the machine.
 
 ## Features
 
-- **Fan control** — switch any fan between **Auto** (firmware-controlled)
-  and **Manual** (fixed RPM, clamped to the fan's own min–max range).
-  **Link Fans** (default) drives every fan with one switch and a single
-  0–100 % slider mapped onto each fan's own range; turn it off for
-  independent per-fan sliders. Sliders apply live while dragging — throttled
-  to one hardware write per 300 ms, on a serial queue so writes can't land
-  out of order — and one-click **Full Blast** / **All Auto** presets sit in
-  the panel footer.
-- **Menu bar readings** — any combination of the fan icon, speed in RPM,
-  speed as % of maximum, and the hottest sensor temperature, joined by "·"
-  and refreshed at an interval you choose (1–20 s). RPM and % report the
-  busiest fan. The icon doubles as a state light: *outline* while the
-  firmware is in charge, *filled* while a manual pin is active, and a
-  *flame* while the heat boost holds — so a pinned fan is visible at a
-  glance even with no readings selected.
-- **Every temperature is a maximum, never an average.** The panel summary,
-  the menu bar reading, the failsafe and the boost all act on the single
-  hottest sensor of the ~200 discovered — one hot core is what matters, and
-  averaging would bury it. Fan speed readings are likewise the busiest fan.
-  The two protections differ only in *when* they look: the failsafe uses the
-  live reading so a real spike acts at once, the boost uses a ten-second
-  median so jitter can't flap it.
-- **Temperatures** — a hottest-sensor summary, a ten-minute **sparkline**
-  (drawn only from polls that actually happened: time spent not polling
-  renders as a gap, not an invented ramp), and a collapsible list of the
-  individual sensors, each growing a rising/falling trend arrow once ~20 s
-  of readings show a direction. Sensor names are best-effort community
-  knowledge, keyed by chip generation; anything unnamed shows its raw
-  four-char SMC key. Display in Celsius, Fahrenheit, or whatever the
-  system region uses.
-- **Thermal pressure** — macOS's own heat verdict
-  (`ProcessInfo.thermalState`: Nominal / Fair / Serious / Critical) as a
-  permanent panel caption, colored from Serious up — the levels where macOS
-  itself starts throttling. Unlike a raw sensor reading it bakes in Apple's
-  per-model knowledge of what's normal, and it costs nothing: the OS pushes
-  changes, so the app never polls for it.
-- **Maximum Fans At** (off by default) — a heat response: when the hottest
-  sensor reaches a trigger temperature (85–100 °C), every fan is driven to
-  maximum — overriding Auto *and* manual pins — and held until it cools
-  a settable **10–25 °C** below the trigger (10 is the hysteresis floor that
-  stops it flapping; wider means fewer, longer bouts of full speed, and the
-  settings pane names the resulting temperature and warns when it lands in
-  the idle band this Mac rarely leaves). The decision runs on the **median**
-  of the last
-  ten seconds of readings rather than the instantaneous one: the
-  hottest-of-~200-sensors summary swings around 8 °C between consecutive
-  samples even at idle, so a raw threshold flaps on and off. Filtering the
-  signal rather than delaying the decision keeps the response prompt — on a
-  measured ramp, full fans at 96 °C where a "must stay hot for 15 seconds"
-  rule waited until 98 °C. Switching the feature off, or losing the
-  sensors, releases immediately. Sustained work crosses the trigger
-  repeatedly as it heats and cools, and the boost answers every crossing —
-  but notifies only about the first, staying quiet until the machine has
-  been cool for ten minutes, so one long build is one notification rather
-  than dozens.
-- **Return to Automatic After** — an optional 15 / 30 / 60-minute timer
-  that ends manual control with a notification, with a countdown shown in
-  the panel.
-- **Launch at Login**, a hideable menu bar icon (session-only, so you can't
-  lock yourself out — relaunching or reopening the app always brings it
-  back), and accessibility labels throughout the UI.
-- **Light on the machine** — with the panel closed and no readings
-  selected, the app doesn't poll the SMC at all. The open panel refreshes
-  at 1 s, safety supervision (while anything is manual or the boost is
-  armed) at 2 s, and the menu bar on its *own* timer at exactly the
-  interval you chose, so no faster consumer can drag it along.
+- **Fan control** — set any fan to **Auto** or **Manual** at a fixed RPM,
+  always clamped to that fan's own min–max range. **Link Fans** drives every
+  fan from a single 0–100 % slider; turn it off for per-fan sliders. Changes
+  apply live, plus one-click **Full Blast** and **All Auto** presets.
+- **Menu bar readings** — show any combination of fan icon, RPM, speed as a
+  percentage, and the hottest sensor temperature, refreshed every 1–20 s. The
+  icon doubles as a status light: outline for automatic, filled for a manual
+  pin, flame while the heat boost is holding.
+- **Temperatures** — a hottest-sensor summary, a ten-minute sparkline, and a
+  collapsible list of the ~200 individual sensors with rising/falling trend
+  arrows. Celsius, Fahrenheit, or whatever your region uses.
+- **Thermal pressure** — macOS's own heat verdict (Nominal / Fair / Serious /
+  Critical), which bakes in Apple's per-model knowledge of what counts as hot.
+- **Maximum Fans At** — optionally drive every fan to maximum when the hottest
+  sensor hits a trigger temperature (85–100 °C), holding until it cools 10–25 °C
+  below. Off by default.
+- **Return to Automatic After** — an optional 15 / 30 / 60-minute timer that
+  ends manual control on its own.
+- **Launch at Login**, a hideable menu bar icon, and per-category notification
+  settings.
+- **Light on the machine** — with the panel closed and no menu bar readings
+  selected, the app doesn't poll the hardware at all.
 
-## Safety model
+## Requirements
 
-Pinning a fan is only worth having if it can't end badly, so supervision is
-not optional:
-
-- Manual speeds are always clamped to the fan's own `[min, max]` range.
-- A **thermal failsafe** (85–100 °C, default 95) forces everything back to
-  Auto, with an alert, if any sensor gets that hot while a fan is under
-  manual control. Fans boosted to maximum are exempt — full speed can't be
-  under-cooling.
-- A **stuck-fan alert** fires when a fan is commanded to a real speed
-  (target at or above its own minimum) but reports essentially no rotation
-  for 30 s of continuous observation — the one hardware fault a fan app can
-  catch early. Observation gaps reset the clock rather than counting time
-  nobody measured, and a healthy spin-up never qualifies.
-- **Sleep** hands the fans back to the firmware on the way down — the SMC
-  keeps its last order through sleep, so a pinned fan would otherwise spin
-  at that speed all night, unsupervised — and wake restores exactly the
-  speeds that were pinned, or asserts Auto if nothing was.
-- **Quit** returns any pinned fan to Auto, and so does the next **launch**
-  if a previous session died without cleaning up.
-- Temperature-driven automation (the boost) always presents as *Auto* in
-  the UI: Manual means a person asked.
-
-Alerts use Notification Center (permission requested on first use). If
-notifications are denied, the failsafe and the stuck-fan alert fall back to
-a modal dialog; informational messages simply drop. A **Notifications** tab
-in the settings window switches each category — safety alerts, the maximum
-fans boost, "returned to automatic" — and the notification sound on or off
-individually, and shows the macOS permission status. Switching a category
-off silences it entirely (the protections themselves still act), and a
-*failed* emergency return to automatic always alerts, regardless.
-
-One honest limit: the failsafe runs only while the app does. If the app is
-force-killed with fans pinned, relaunch it, run `sudo fanctl auto-all`, or
-reboot — SMC state resets on reboot.
+macOS 13 or later. Developed and tested on Apple Silicon; Intel Macs are
+untested but may largely work.
 
 ## Install
 
-### From a release
+Download the `.dmg` from [Releases](https://github.com/n14395/speedy-fan/releases)
+and drag SpeedyFan to Applications.
 
-Download the `.dmg` from
-[Releases](https://github.com/n14395/speedy-fan/releases) and drag SpeedyFan
-to Applications. The app is ad-hoc signed (no paid Apple Developer account),
-so macOS quarantines it after download: approve it under **System Settings →
-Privacy & Security** when first blocked, or clear the flag:
+### Building from source
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/SpeedyFan.app
+./build.sh                 # build build/SpeedyFan.app
+./build.sh --dmg           # ...and package it as build/SpeedyFan.dmg
+./build.sh --sign          # ...Developer ID sign, notarize and staple
+./build.sh --publish v1.2  # tag, push and cut a GitHub release
+swift test                 # run the tests
 ```
 
-### From source
+Building needs full Xcode — the bare Command Line Tools are missing the SwiftUI
+macro plugins. `build.sh` finds `/Applications/Xcode.app` or `Xcode-beta.app`
+automatically. The app icon is generated by `tools/make-icon.swift` whenever
+`AppIcon.icns` is missing.
+
+## The privileged helper
+
+Reading the SMC needs no privileges, but **writing to it needs root**. On your
+first manual fan change, SpeedyFan installs a small helper CLI (`fanctl`) to
+`/Library/PrivilegedHelperTools/com.speedyfan.fanctl` as setuid-root. That's one
+admin password prompt, after which fan changes apply silently.
+
+The settings window shows the install status and offers **Install**, **Update**
+or **Uninstall Helper**. Updating the app doesn't automatically update the
+installed helper, so SpeedyFan compares the two by content digest and offers
+**Update Helper** when they actually differ.
+
+## Safety
+
+Pinning a fan is only worth having if it can't end badly, so the supervision
+isn't optional:
+
+- Manual speeds are always clamped to the fan's own `[min, max]` range.
+- A **thermal failsafe** (85–100 °C, default 95) forces everything back to Auto,
+  with an alert, if any sensor gets that hot while a fan is pinned.
+- A **stuck-fan alert** fires when a fan is commanded to a real speed but
+  reports essentially no rotation for 30 seconds.
+- **Sleep** hands the fans back to the firmware on the way down — the SMC keeps
+  its last order through sleep, so a pinned fan would otherwise run all night
+  unsupervised. Wake restores whatever was pinned.
+- **Quitting** returns every pinned fan to Auto, and so does the next launch if
+  a previous session died without cleaning up.
+
+One honest limit: the failsafe only runs while the app does. If SpeedyFan is
+force-killed with fans pinned, relaunch it, run `sudo fanctl auto-all`, or
+reboot — SMC state resets on reboot.
+
+## Command line
+
+The helper doubles as a debug CLI, either from the build tree or as installed:
 
 ```sh
-./build.sh        # builds SpeedyFan.app and packs SpeedyFan-<version>.dmg
-open SpeedyFan.app
-```
-
-Building needs full Xcode — the bare Command Line Tools are missing the
-SwiftUI macro plugins; `build.sh` finds `/Applications/Xcode.app` or
-`Xcode-beta.app` automatically. Every build also packs a versioned,
-drag-to-install `.dmg` (the version comes from `CFBundleShortVersionString`
-in `Info.plist`). The app icon is generated code-first:
-`tools/make-icon.swift` renders it and `build.sh` packs the `.icns` whenever
-it's missing. Tests run with `swift test`.
-
-### The privileged helper
-
-Reading the SMC needs no privileges; **writing needs root**. On your first
-manual change the app installs its helper CLI (`fanctl`) once to
-`/Library/PrivilegedHelperTools/com.speedyfan.fanctl` as setuid-root — one
-admin password prompt — after which slider changes apply silently. The
-settings window shows the install status and offers **Install**, **Update**
-or **Uninstall Helper** as appropriate (uninstalling returns fans to
-automatic first).
-
-Updating the app does not by itself update the installed helper: fan writes
-reinstall it automatically only when the *command set* changes
-(`FanctlProtocol.version`), so a fix to how an existing command behaves would
-otherwise never reach `/Library`. SpeedyFan therefore compares the installed
-copy with the bundled one by content digest and offers **Update Helper** when
-they differ — a rebuild that leaves `fanctl` unchanged produces identical
-bytes, so this stays quiet unless the helper really moved.
-
-## Notes on the SMC (hard-won)
-
-SpeedyFan speaks the classic `AppleSMC` IOKit protocol, the same mechanism
-used by smcFanControl, Macs Fan Control and exelban/stats. Things learned
-the hard way, kept here so nobody has to learn them again:
-
-- The key scheme is `FNum` (fan count) and per fan `F<n>Ac` actual, `F<n>Tg`
-  target, `F<n>Mn`/`F<n>Mx` range, `F<n>Md` mode. Values are `flt` on
-  M-series (classic `fpe2`/`sp78` are also decoded).
-- **`F<n>Md` is a flag word, not a boolean.** Writing 1 forces a fan, but
-  firmware can report **3 with a target of 0** for a fan it has *parked*
-  itself — blades stopped, the normal cool-idle state and the state a Mac
-  wakes in. "Mode is non-zero" therefore does not mean a person asked for
-  the current speed: SpeedyFan only treats a fan as manually pinned when it
-  is forced *and* its target is at least the fan's own minimum, which a
-  park never is and a real pin always is (writes clamp to `[min, max]`).
-- **`F<n>Mn` is read-only on Apple Silicon** — writes fail with SMC result
-  134 or are silently ignored.
-- On some M-series firmwares a mode write only sticks after setting the
-  `Ftst` (thermal test) flag; the helper handles that unlock-and-retry
-  dance, and clears the flag again on auto-all.
-- **Sleep leaves the SMC exactly as it was** — hence the explicit handover
-  in the safety model above.
-- Temperature sensor keys are undocumented on Apple Silicon, so they are
-  discovered by scanning (plausible `T***` keys) rather than listed. An
-  M1 Max exposes ~200 of them, and die hotspot sensors idle at 70–80 °C —
-  absolute "this is hot" judgments are unreliable, which is why the panel
-  also shows macOS's own thermal-pressure verdict. Sensor *names* come from
-  the community tables in exelban/stats, selected per chip generation
-  because the same key means different sensors on different chips (`Tp09`
-  is an efficiency core on M1 but a performance core on M2).
-
-## Command-line tool
-
-The helper doubles as a debug CLI (from the build tree, or as installed at
-`/Library/PrivilegedHelperTools/com.speedyfan.fanctl`):
-
-```sh
-fanctl list             # JSON fan status (no root needed)
+fanctl list             # fan status as JSON
 sudo fanctl set 0 4000  # pin fan 0 to 4000 RPM
 sudo fanctl auto 0      # fan 0 back to automatic
-sudo fanctl auto-all    # everything back to automatic
-fanctl key F0Md         # print one raw SMC key (no root needed)
+sudo fanctl auto-all    # every fan back to automatic
+fanctl key F0Md         # print one raw SMC key
 ```
 
 ## Uninstall
 
-Quit the app first (quitting returns the fans to automatic), then:
+Quit the app first, which returns the fans to automatic, then:
 
 ```sh
 sudo rm /Library/PrivilegedHelperTools/com.speedyfan.fanctl
 rm -rf /Applications/SpeedyFan.app
 ```
 
-## Compatibility
+## Notes on the SMC
 
-macOS 13 or later. Developed and tested on an M1 Max MacBook Pro; other
-Apple Silicon Macs should work. Intel Macs are untested — the SMC layer does
-speak the classic data types, so it may largely work, and reports are
-welcome.
+SpeedyFan speaks the classic `AppleSMC` IOKit protocol, the same one used by
+smcFanControl, Macs Fan Control and exelban/stats. A few things that cost time
+to work out:
+
+- The keys are `FNum` for the fan count, then per fan `F<n>Ac` (actual), `F<n>Tg`
+  (target), `F<n>Mn`/`F<n>Mx` (range) and `F<n>Md` (mode). Values are `flt` on
+  M-series; the classic `fpe2`/`sp78` types are also decoded.
+- **`F<n>Md` is a flag word, not a boolean.** Writing 1 forces a fan, but the
+  firmware can report 3 with a target of 0 for a fan it has *parked* itself. So
+  a fan only counts as manually pinned when it's forced *and* its target is at
+  or above the fan's minimum.
+- **`F<n>Mn` is read-only on Apple Silicon** — writes fail or are ignored.
+- On some M-series firmwares a mode write only sticks after setting the `Ftst`
+  (thermal test) flag. The helper handles that retry and clears the flag again.
+- Temperature sensor keys are undocumented on Apple Silicon, so they're found by
+  scanning for plausible `T***` keys rather than from a list. Names are
+  best-effort community knowledge keyed by chip generation, since the same key
+  means different things on different chips; unknown sensors show their raw
+  four-character key.
 
 ## Acknowledgements
 
-- The `AppleSMC` user-client protocol follows the lineage of
-  [smcFanControl](https://github.com/hholtmann/smcFanControl),
-  [SMCKit](https://github.com/beltex/SMCKit) and
-  [exelban/stats](https://github.com/exelban/stats).
-- Apple Silicon sensor-key names are community knowledge from the
-  MIT-licensed [exelban/stats](https://github.com/exelban/stats), which in
-  turn draws on [acidanthera's VirtualSMC
-  documentation](https://github.com/acidanthera/VirtualSMC).
+The `AppleSMC` user-client protocol follows the lineage of
+[smcFanControl](https://github.com/hholtmann/smcFanControl),
+[SMCKit](https://github.com/beltex/SMCKit) and
+[exelban/stats](https://github.com/exelban/stats). Apple Silicon sensor names
+come from the MIT-licensed [exelban/stats](https://github.com/exelban/stats),
+which in turn draws on [acidanthera's VirtualSMC
+documentation](https://github.com/acidanthera/VirtualSMC).
