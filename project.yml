@@ -32,7 +32,7 @@ targets:
       base:
         INFOPLIST_FILE: Info.plist
         GENERATE_INFOPLIST_FILE: NO
-        PRODUCT_BUNDLE_IDENTIFIER: com.speedyfan.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.n14395.SpeedyFan
     dependencies:
       - target: SMCCore
       - target: fanctl

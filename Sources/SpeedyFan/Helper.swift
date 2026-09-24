@@ -27,7 +27,7 @@ enum HelperError: LocalizedError {
 }
 
 enum Helper {
-    static let installedPath = "/Library/PrivilegedHelperTools/com.speedyfan.fanctl"
+    static let installedPath = "/Library/PrivilegedHelperTools/com.n14395.SpeedyFan.fanctl"
 
     /// The fanctl binary shipped next to the app: in the bundle's Resources
     /// when running as SpeedyFan.app, or next to the executable under

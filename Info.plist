@@ -7,7 +7,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>SpeedyFan</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.speedyfan.app</string>
+	<string>com.n14395.SpeedyFan</string>
 	<key>CFBundleExecutable</key>
 	<string>SpeedyFan</string>
 	<key>CFBundleVersion</key>

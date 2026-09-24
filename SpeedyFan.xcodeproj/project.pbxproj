@@ -616,7 +616,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.speedyfan.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.n14395.SpeedyFan;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -655,7 +655,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.speedyfan.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.n14395.SpeedyFan;
 				SDKROOT = macosx;
 			};
 			name = Debug;

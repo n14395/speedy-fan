@@ -10,7 +10,7 @@ final class HelperTests: XCTestCase {
 
     func testInstalledPathIsTheBlessedLocation() {
         XCTAssertEqual(Helper.installedPath,
-                       "/Library/PrivilegedHelperTools/com.speedyfan.fanctl")
+                       "/Library/PrivilegedHelperTools/com.n14395.SpeedyFan.fanctl")
     }
 
     func testIsInstalledMatchesFilesystemReality() {

@@ -916,7 +916,7 @@ final class FanController: ObservableObject {
     /// queue two fanctl processes could land in either order and leave the
     /// fans at a stale speed.
     private static let helperQueue = DispatchQueue(
-        label: "com.speedyfan.helper", qos: .userInitiated)
+        label: "com.n14395.SpeedyFan.helper", qos: .userInitiated)
 
     /// Run one or more fanctl commands in order. The completion receives nil
     /// on success or the first command's error. `live` marks a throttled
