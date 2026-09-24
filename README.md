@@ -1,4 +1,8 @@
-# SpeedyFan
+<p align="center">
+  <img src="app-icon.png" width="160" alt="The SpeedyFan app icon">
+</p>
+
+<h1 align="center">SpeedyFan</h1>
 
 A macOS menu bar app for monitoring and controlling the fans in Apple Silicon
 Macs. Live RPM and temperatures in a popup panel, and each fan — or all of them
