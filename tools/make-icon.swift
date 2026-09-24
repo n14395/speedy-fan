@@ -1,3 +1,6 @@
+// Copyright 2026 Nick Fay
+// SPDX-License-Identifier: Apache-2.0
+
 // Renders AppIcon.icns for SpeedyFan: macOS squircle, cool blue gradient,
 // white fan glyph (the same SF Symbol the menu bar uses).
 // Run: swift tools/make-icon.swift  (from the repo root)

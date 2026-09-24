@@ -155,3 +155,13 @@ The `AppleSMC` user-client protocol follows the lineage of
 come from the MIT-licensed [exelban/stats](https://github.com/exelban/stats),
 which in turn draws on [acidanthera's VirtualSMC
 documentation](https://github.com/acidanthera/VirtualSMC).
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
+Third-party attribution is in [NOTICE](NOTICE).
+
+SpeedyFan writes to the AppleSMC through a privileged helper and can set fan
+speeds below those the firmware would choose on its own. Sections 7 and 8 of the
+Apache License (warranty and liability disclaimers) apply in full; you run it at
+your own risk, including the risk of thermal damage to hardware.

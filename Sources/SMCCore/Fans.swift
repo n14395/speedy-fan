@@ -1,3 +1,6 @@
+// Copyright 2026 Nick Fay
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 
 // Fan-level API on top of the raw SMC client. Key scheme (same on Intel and
