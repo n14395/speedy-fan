@@ -49,7 +49,12 @@ untested but may largely work.
 
 ## Install
 
-Download the `.dmg` from [Releases](https://github.com/n14395/speedy-fan/releases)
+```sh
+brew tap n14395/tap
+brew install --cask speedy-fan
+```
+
+Or download the `.dmg` from [Releases](https://github.com/n14395/speedy-fan/releases)
 and drag SpeedyFan to Applications.
 
 ### Building from source
