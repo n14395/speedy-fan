@@ -6,7 +6,7 @@ at once — switchable between the firmware's automatic control and a manual
 speed.
 
 <p align="center">
-  <img src="docs/panel.png" width="320" alt="The SpeedyFan panel">
+  <img src="docs/01-panel.png" width="720" alt="The SpeedyFan panel open under the menu bar: fan speeds, the manual slider, the hottest temperature and a ten-minute sparkline">
 </p>
 
 ## Features
@@ -33,6 +33,10 @@ speed.
   settings.
 - **Light on the machine** — with the panel closed and no menu bar readings
   selected, the app doesn't poll the hardware at all.
+
+<p align="center">
+  <img src="docs/02-panel-sensors.png" width="720" alt="The same panel with the Sensors disclosure open: every individual SMC sensor listed with its temperature and a rising or falling trend arrow">
+</p>
 
 ## Requirements
 
@@ -90,6 +94,10 @@ isn't optional:
 One honest limit: the failsafe only runs while the app does. If SpeedyFan is
 force-killed with fans pinned, relaunch it, run `sudo fanctl auto-all`, or
 reboot — SMC state resets on reboot.
+
+<p align="center">
+  <img src="docs/03-settings-fans.png" width="720" alt="Settings ▸ Fans: link fans, return to automatic after, failsafe temperature, and the maximum-fans trigger with its release margin">
+</p>
 
 ## Command line
 

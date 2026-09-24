@@ -435,6 +435,9 @@ private struct GeneralSettingsTab: View {
 
             Section {
                 LabeledContent("SpeedyFan", value: versionString)
+                #if SPARKLE
+                SparkleCheckForUpdatesButton()
+                #endif
             }
         }
         .formStyle(.grouped)

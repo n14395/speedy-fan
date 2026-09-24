@@ -5,6 +5,9 @@ import SMCCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppSettings.migrateSettings()
+        #if SPARKLE
+        SparkleUpdater.start()
+        #endif
         // Hiding is session-only: every launch starts with the icon visible.
         IconVisibility.show()
 
